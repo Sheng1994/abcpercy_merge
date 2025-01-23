@@ -314,6 +314,7 @@ struct If_Cut_t_
     unsigned           fAndCut :  1;  // matched with AND gate
     /****************user define******************/
     Vec_Ptr_t*         vNodesInCut;   // all nodes in the cut
+    Vec_Ptr_t*         vCutsWithNode;   // all nodes in the cut
     Vec_Ptr_t *        netDAG;        // the DAG info of the cut
     Vec_Ptr_t *        DagOP;        // the OP info of the cut
 

@@ -240,7 +240,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
     If_ObjForEachCut( pObj->pFanin1, pCut1, k )
     {
         // get the next free cut
-        assert( pCutSet->nCuts <= pCutSet->nCutsMax );
+        assert( pCutSet->nCuts <= pCutSet->nCutsMax);
         pCut = pCutSet->ppCuts[pCutSet->nCuts];
         // make sure K-feasible cut exists
         if ( If_WordCountOnes(pCut0->uSign | pCut1->uSign) > p->pPars->nLutSize )
@@ -250,6 +250,9 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // initialize the vNodesInCut of pCut0 and pCut1
         pCut->vNodesInCut = Vec_PtrAlloc(20);
         Vec_PtrPush(pCut->vNodesInCut, &pObj->Id);
+
+        // initialize the vCutsWithNode
+        pCut->vCutsWithNode = Vec_PtrAlloc(20);
 
         if (pCut0->nLeaves == 1) {
             pCut0->vNodesInCut = Vec_PtrAlloc(20);
