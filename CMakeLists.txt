@@ -1,0 +1,97 @@
+cmake_minimum_required (VERSION 3.6)
+
+include(${CMAKE_ROOT}/Modules/ExternalProject.cmake)
+
+project(percy LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if (UNIX)
+    set(CMAKE_CXX_FLAGS "-Wall -pedantic -fPIC ${CMAKE_CXX_FLAGS} -DLIN64")
+endif()
+
+option(TRAVIS_BUILD "Use Travis build configuration" OFF)
+option(PERCY_EXAMPLES "Build examples" OFF)
+option(PERCY_TEST "Build tests" ON)
+option(PERCY_BENCH "Build benchmarks" OFF)
+option(PERCY_BUILD_KITTY "Build kitty for percy" ON)
+option(PERCY_USE_SYRUP "Use glucose-syrup instead of glucose" OFF)
+option(PERCY_USE_GLUCOSE "Use glucose instead of glucose-syrup" OFF)
+option(PERCY_BUILD_CMS "Enables support for CryptoMinisat" OFF)
+option(STATIC_LIBABC "Builds libabc as a static library" ON)
+option(DISABLE_NAUTY "Disables the Nauty library" ON)
+option(PERCY_SATOKO "Enable support for the Satoko solver" OFF)
+
+if (${TRAVIS_BUILD})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DTRAVIS_BUILD -Wno-sign-compare -Wno-parentheses")
+endif()
+
+# Glucose and Glucose-Syrup don't build properly on Windows
+if (UNIX)
+    find_package(ZLIB REQUIRED)
+    if (${PERCY_USE_SYRUP})
+        find_package(Threads REQUIRED)
+        add_subdirectory(syrup)
+    elseif(${PERCY_USE_GLUCOSE})
+        add_subdirectory(glucose)
+    endif()
+endif()
+
+if (${PERCY_BUILD_KITTY})
+    add_subdirectory(kitty EXCLUDE_FROM_ALL)
+endif()
+
+if (${PERCY_BUILD_CMS})
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DUSE_CMS")
+    set(ONLY_SIMPLE ON CACHE BOOL "Build simple version of CMS")
+    set(ENABLE_PYTHON_INTERFACE OFF CACHE BOOL "Do not build Python inferface")
+    set(IPASIR OFF CACHE BOOL "We do not need IPASIR")
+    add_subdirectory(cryptominisat)
+    SET(CMS_INCLUDE_DIR "${CMAKE_CURRENT_BINARY_DIR}/cryptominisat/cmsat5-src") 
+    if (WIN32)
+        link_directories("${PROJECT_BINARY_DIR}/cryptominisat/lib/Debug")
+        link_directories("${PROJECT_BINARY_DIR}/cryptominisat/lib/Release")
+    else()
+        SET(CMS_LDIR "${CMAKE_CURRENT_BINARY_DIR}/cryptominisat/lib") 
+        link_directories(${CMS_LDIR})
+    endif()
+endif()
+
+if (${PERCY_SATOKO})
+    add_subdirectory(satoko)
+endif()
+
+if (${PERCY_BENCH})
+    add_subdirectory(bench)
+endif()
+
+set(ABC_USE_NAMESPACE "pabc")
+add_subdirectory(abc)
+if (UNIX)
+    target_compile_definitions(libabcsat PUBLIC "LIN64" ABC_NAMESPACE=pabc ABC_NO_USE_READLINE)
+elseif(WIN32)
+    target_compile_definitions(libabcsat PUBLIC ABC_NAMESPACE=pabc ABC_USE_NO_READLINE NOMINMAX)
+    if (STATIC_LIBABC)
+        target_compile_definitions(libabcsat PUBLIC WIN32_NO_DLL)
+    endif()
+endif()
+
+# Nauty does not seem to compile on Windows
+if (WIN32)
+    set(DISABLE_NAUTY ON)
+endif()
+
+if (NOT ${DISABLE_NAUTY})
+    add_subdirectory(nauty)
+endif()
+
+add_subdirectory(include)
+
+if(PERCY_EXAMPLES)
+  add_subdirectory(examples)
+endif()
+
+if (${PERCY_TEST})
+    enable_testing()
+    add_subdirectory(zinterface)
+endif()
