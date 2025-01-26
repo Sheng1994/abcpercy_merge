@@ -1592,12 +1592,12 @@ void If_ManInitializeNodeCuts(If_Man_t* pMan)
   Synopsis    [Merge NodesInCut]
 
 ***********************************************************************/
-void If_CutNodesMerge(If_Cut_t* pCut0, If_Cut_t* pCut1, If_Cut_t* pCut, If_Man_t * p)
+void If_CutNodesMerge(If_Cut_t* pCut0, If_Cut_t* pCut1, If_Cut_t* pCut)
 {
     int i = 0,j = 0;
     for (i = 0; i < pCut0->vNodesInCut->nSize; i++) {
         for (j = 0; j < pCut1->vNodesInCut->nSize; j++) {
-            int num0 = *(int *) pCut0->vNodesInCut->pArray[i];
+            int num0 = *(int *)pCut0->vNodesInCut->pArray[i];
             int num1 = *(int *)pCut1->vNodesInCut->pArray[j];
             int isleave0 = 0; int isleave1 = 0;
             // Check if num1/num2 belong to Leaves
@@ -1634,17 +1634,6 @@ void If_CutNodesMerge(If_Cut_t* pCut0, If_Cut_t* pCut1, If_Cut_t* pCut, If_Man_t
                 }
                 if (!alreadyExistsNum0 && isleave0 == 0) {
                     Vec_PtrPush(pCut->vNodesInCut, pCut0->vNodesInCut->pArray[i]);
-                    // If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, num0);
-                    // int alreadyExists = 0;
-                    // for (int k = 0; k < CurrNode->vCutsWithNode->nSize; k++) {
-                    //     if (*(int *)CurrNode->vCutsWithNode->pArray[k] == num0) {
-                    //         alreadyExists = 1;
-                    //         break;
-                    //     }
-                    // }
-                    // if (!alreadyExists && CurrNode->vCutsWithNode->nSize<10) {
-                    //     Vec_PtrPush(CurrNode->vCutsWithNode, &num0);
-                    // }
                 }
 
                 // Check for num1
@@ -1657,17 +1646,6 @@ void If_CutNodesMerge(If_Cut_t* pCut0, If_Cut_t* pCut1, If_Cut_t* pCut, If_Man_t
                 }
                 if (!alreadyExistsNum1 && isleave1 == 0) {
                     Vec_PtrPush(pCut->vNodesInCut, pCut1->vNodesInCut->pArray[j]);
-                    // If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, num1);
-                    // int alreadyExists = 0;
-                    // for (int k = 0; k < CurrNode->vCutsWithNode->nSize; k++) {
-                    //     if (*(int *)CurrNode->vCutsWithNode->pArray[k] == num1) {
-                    //         alreadyExists = 1;
-                    //         break;
-                    //     }
-                    // }
-                    // if (!alreadyExists && CurrNode->vCutsWithNode->nSize<10) {
-                    //     Vec_PtrPush(CurrNode->vCutsWithNode, &num1);
-                    // }
                 }
             }
         }
