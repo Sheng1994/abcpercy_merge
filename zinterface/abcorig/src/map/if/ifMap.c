@@ -148,7 +148,7 @@ int * If_CutArrTimeProfile( If_Man_t * p, If_Cut_t * pCut )
     return p->pArrTimeProfile;
 }
 
-void If_CutNodesMerge(If_Cut_t * p_cut0, If_Cut_t * p_cut1, If_Cut_t * p_cut);
+void If_CutNodesMerge(If_Cut_t * p_cut0, If_Cut_t * p_cut1, If_Cut_t * p_cut, If_Man_t * if_man);
 
 /**Function*************************************************************
 
@@ -251,9 +251,6 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         pCut->vNodesInCut = Vec_PtrAlloc(20);
         Vec_PtrPush(pCut->vNodesInCut, &pObj->Id);
 
-        // initialize the vCutsWithNode
-        pCut->vCutsWithNode = Vec_PtrAlloc(20);
-
         if (pCut0->nLeaves == 1) {
             pCut0->vNodesInCut = Vec_PtrAlloc(20);
             Vec_PtrPush(pCut0->vNodesInCut, &pObj->pFanin0->Id);
@@ -294,8 +291,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
 
         /***********************user define**************************/
         // merge the nodes from cut0 and cut1
-        If_CutNodesMerge(pCut0, pCut1, pCut );
-
+        If_CutNodesMerge(pCut0, pCut1, pCut, p);
         // print the leaves in current cut
         // printf("The leaves in current node %d cut is: ", pObj->Id);
         // for ( i = 0; i < pCut->nLeaves; i++ ) {
@@ -510,7 +506,7 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // insert the cut into storage
         If_CutSort( p, pCutSet, pCut );
 //        If_CutTraverse( p, pObj, pCut );
-    } 
+    }
     assert( pCutSet->nCuts > 0 );
 //    If_CutVerifyCuts( pCutSet, !p->pPars->fUseTtPerm );
 

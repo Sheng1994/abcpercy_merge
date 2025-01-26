@@ -144,6 +144,7 @@ void If_CutDAG(If_Man_t* p, If_Cut_t* pCut)
             //printf("netDAG[%d][%d] = %d with %d inv\n", i, j, *pNum, *pInv);
         }
     }
+
     //printf("\n");
     // Return the 2D array (netDAG)
     // return netDAG;
@@ -218,9 +219,36 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define cut expand************************/
+    // get each node's corresponding cuts
+    If_ManForEachNode( p, pObj, i ) {
+        pObj->vCutsWithNode = Vec_PtrAlloc(20);
+        Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
+        If_Cut_t * pCut = &pObj->CutBest;
+        for (int j=0; j<pCut->vNodesInCut->nSize;j++) {
+            int nodetemp = *(int *)pCut->vNodesInCut->pArray[j];
+            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+            int alreadyExists = 0;
+            for (int k = 0; k < CurrNode->vCutsWithNode->nSize; k++) {
+                if (*(int *)CurrNode->vCutsWithNode->pArray[k] == pObj->Id) {
+                    alreadyExists = 1;
+                    break;
+                }
+            }
+            if (!alreadyExists) {
+                Vec_PtrPush(CurrNode->vCutsWithNode, &pObj->Id);
+            }
+        }
+    }
+
     // single out expand to dual output
     int fail_count = 0;
     If_ManForEachNode( p, pObj, i ) {
+        printf("\nCuts with type current node: ");
+        for (int j=0;j<pObj->vCutsWithNode->nSize;j++) {
+            int nodetemp = *(int *)pObj->vCutsWithNode->pArray[j];
+            printf("%d ", *(int *)pObj->vCutsWithNode->pArray[j]);
+        }
+
 	    If_Cut_t * pCut = &pObj->CutBest;
         int nleaves = pCut->nLeaves;
         printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);

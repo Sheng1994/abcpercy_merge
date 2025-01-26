@@ -314,7 +314,6 @@ struct If_Cut_t_
     unsigned           fAndCut :  1;  // matched with AND gate
     /****************user define******************/
     Vec_Ptr_t*         vNodesInCut;   // all nodes in the cut
-    Vec_Ptr_t*         vCutsWithNode;   // all nodes in the cut
     Vec_Ptr_t *        netDAG;        // the DAG info of the cut
     Vec_Ptr_t *        DagOP;        // the OP info of the cut
 
@@ -354,7 +353,8 @@ struct If_Obj_t_
     int                nVisitsCopy;   // the number of visits to this node
     If_Obj_t *         pFanin0;       // the first fanin
     If_Obj_t *         pFanin1;       // the second fanin
-    Vec_Ptr_t *        vFanouts;        // the vector of fanouts
+    Vec_Ptr_t *        vFanouts;      // the vector of fanouts
+    Vec_Ptr_t *        vCutsWithNode; // all nodes in the cut
     If_Obj_t *         pEquiv;        // the choice node
     float              EstRefs;       // estimated reference counter
     float              Required;      // required time of the onde
