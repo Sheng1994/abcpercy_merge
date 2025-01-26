@@ -250,6 +250,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // initialize the vNodesInCut of pCut0 and pCut1
         pCut->vNodesInCut = Vec_PtrAlloc(20);
         Vec_PtrPush(pCut->vNodesInCut, &pObj->Id);
+        // initialize the vCutWithNode with current node
+        pCut->vCutWithNode = Vec_PtrAlloc(20);
 
         if (pCut0->nLeaves == 1) {
             pCut0->vNodesInCut = Vec_PtrAlloc(20);
