@@ -219,7 +219,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define cut expand************************/
-    // get each node's corresponding cuts
+    // get each node's corresponding cuts as form
     If_ManForEachNode( p, pObj, i ) {
         pObj->vCutsWithNode = Vec_PtrAlloc(20);
         Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
