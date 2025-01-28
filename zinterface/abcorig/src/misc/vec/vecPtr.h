@@ -754,6 +754,16 @@ static inline int Vec_PtrPushUnique( Vec_Ptr_t * p, void * Entry )
     return 0;
 }
 
+static inline int Vec_PtrPushUniqueNumber( Vec_Ptr_t * p, int *Entry )
+{
+    int i;
+    for ( i = 0; i < p->nSize; i++ )
+        if ( *(int *)p->pArray[i] == *Entry )
+            return 1;
+    Vec_PtrPush( p, Entry );
+    return 0;
+}
+
 /**Function*************************************************************
 
   Synopsis    [Returns the last entry and removes it from the list.]
@@ -1209,6 +1219,26 @@ static inline Vec_Ptr_t * Vec_PtrAllocTruthTables( int nVars )
     return p;
 }
 
+/**Function******************user define*********************************
+
+  Synopsis    [delete the last element of vec]
+
+  Description []
+
+  SideEffects []
+
+  SeeAlso     []
+
+***********************************************************************/
+
+static inline void Vec_PtrRemoveLast( Vec_Ptr_t * p )
+{
+    // Check if the vector is not empty
+    assert( p->nSize > 0 );
+
+    // Simply reduce the size and the last element will be "removed"
+    p->nSize--;
+}
 
 
 ABC_NAMESPACE_HEADER_END

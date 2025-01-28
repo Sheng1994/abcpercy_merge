@@ -1696,6 +1696,330 @@ void If_CutFanoutVec(If_Man_t* p) {
     // }
 }
 
+/**Function*************************************************************
+
+  Synopsis    [Find cuts with node i]
+
+***********************************************************************/
+void If_CutsWithNode(If_Man_t* p) {
+    int i;
+    If_Obj_t * pObj;
+    If_ManForEachNode(p, pObj, i) {
+        pObj->vCutsWithNode = Vec_PtrAlloc(20);
+        Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
+        If_Cut_t * pCut = &pObj->CutBest;
+        for (int j=0; j<pCut->vNodesInCut->nSize;j++) {
+            int nodetemp = *(int *)pCut->vNodesInCut->pArray[j];
+            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+            int alreadyExists = 0;
+            for (int k = 0; k < CurrNode->vCutsWithNode->nSize; k++) {
+                if (*(int *)CurrNode->vCutsWithNode->pArray[k] == pObj->Id) {
+                    alreadyExists = 1;
+                    break;
+                }
+            }
+            if (!alreadyExists) {
+                Vec_PtrPush(CurrNode->vCutsWithNode, &pObj->Id);
+            }
+        }
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find cuts with node i as leaf]
+
+***********************************************************************/
+void If_CutsWithLeaf(If_Man_t* p) {
+    If_Obj_t * pObj; int i;
+    If_ManForEachObj(p, pObj, i) {
+        pObj->vCutsWithLeave = Vec_PtrAlloc(20);
+        //Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
+        If_Cut_t * pCut = &pObj->CutBest;
+        for (int j=0; j<pCut->nLeaves;j++) {
+            int nodetemp = pCut->pLeaves[j];
+            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+            int alreadyExists = 0;
+            if (CurrNode->vCutsWithLeave!=NULL) {
+                for (int k = 0; k < CurrNode->vCutsWithLeave->nSize; k++) {
+                    if (*(int *)CurrNode->vCutsWithLeave->pArray[k] == pObj->Id) {
+                        alreadyExists = 1;
+                        break;
+                    }
+                }
+            }
+            // if (!CurrNode->vCutsWithLeave) {
+            //     CurrNode->vCutsWithLeave = Vec_PtrAlloc(20);  // Allocate memory if not already allocated
+            // }
+            if (!alreadyExists) {
+                Vec_PtrPush(CurrNode->vCutsWithLeave, &pObj->Id);
+            }
+        }
+    }
+}
+/**Function*************************************************************
+
+  Synopsis    [Find cuts with node i as leaf based on leaves]
+
+***********************************************************************/
+void If_NearCutEnuLeaves(If_Man_t* p, int maxCuts) {
+
+    If_Obj_t * pObj; int i;
+    If_ManForEachNode(p, pObj, i) {
+        If_Cut_t *currentCut = &pObj->CutBest;
+        int *currentLeaves = pObj->CutBest.pLeaves;
+        int selectedCutIndex = 0;
+        int maxMatchingLeaves = 0;
+
+        // Dynamically allocate memory for storing top cuts and their counts
+        int *topCutIndices = (int *)malloc(maxCuts * sizeof(int));
+        int *topMatchingCounts = (int *)malloc(maxCuts * sizeof(int));
+
+        // Initialize topCutIndices and topMatchingCounts arrays
+        for (int index = 0; index < maxCuts; index++) {
+            topCutIndices[index] = -1;  // Initialize with invalid values
+            topMatchingCounts[index] = 0; // Initialize counts to 0
+        }
+        for (int leafIndex = 0; leafIndex < currentCut->nLeaves; leafIndex++) {
+            int currentNodeIndex = currentCut->pLeaves[leafIndex];
+            If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
+            for (int cutIndexInNode = 0; cutIndexInNode < currentNode->vCutsWithLeave->nSize; cutIndexInNode++) {
+                int candidateCutIndex = *(int *)currentNode->vCutsWithLeave->pArray[cutIndexInNode];
+                if (pObj->Id == candidateCutIndex) {
+                    continue;  // Skip the node itself
+                }
+                // Check if candidateCutIndex already exists in topCutIndices
+                int isDuplicate = 0;
+                for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+                    if (topCutIndices[topCutIndex] == candidateCutIndex) {
+                        isDuplicate = 1;  // Set flag if duplicate is found
+                        break;
+                    }
+                }
+                if (isDuplicate) {
+                    continue;  // Skip adding this candidateCutIndex if it's a duplicate
+                }
+                If_Obj_t *candidateCutNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, candidateCutIndex);
+                int *candidateCutLeaves = candidateCutNode->CutBest.pLeaves;
+                int matchingLeavesCount = 0;
+                // Compare leaves between currentCut and candidateCutNode
+                for (int currentLeafIndex = 0; currentLeafIndex < currentCut->nLeaves; currentLeafIndex++) {
+                    for (int candidateLeafIndex = 0; candidateLeafIndex < candidateCutNode->CutBest.nLeaves; candidateLeafIndex++) {
+                        if (currentLeaves[currentLeafIndex] == candidateCutLeaves[candidateLeafIndex]) {
+                            matchingLeavesCount++;
+                            break;
+                        }
+                    }
+                }
+                // Insert the current candidateCutIndex and matchingLeavesCount into the topCuts array if it's one of the top N
+                for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+                    if (matchingLeavesCount > topMatchingCounts[topCutIndex]) {
+                        // Shift the elements down
+                        for (int shiftIndex = maxCuts - 1; shiftIndex > topCutIndex; shiftIndex--) {
+                            topMatchingCounts[shiftIndex] = topMatchingCounts[shiftIndex - 1];
+                            topCutIndices[shiftIndex] = topCutIndices[shiftIndex - 1];
+                        }
+                        topMatchingCounts[topCutIndex] = matchingLeavesCount;
+                        topCutIndices[topCutIndex] = candidateCutIndex;
+                        break;
+                    }
+                }
+            }
+        }
+        // Store the top cuts in pObj->vNearCut
+        if (!pObj->vNearCut) {
+            pObj->vNearCut = Vec_PtrAlloc(maxCuts);  // Allocate memory if not already allocated
+        }
+        // Push the top cuts to the vector
+        for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+            if (topCutIndices[topCutIndex] > p->vCis->nSize) {  // Only add valid cuts
+                Vec_PtrPush(pObj->vNearCut, &topCutIndices[topCutIndex]);
+                printf("Selected Cut Index %d for Node %d with %d matching leaves is: %d\n",
+                       topCutIndex + 1, i, topMatchingCounts[topCutIndex], topCutIndices[topCutIndex]);
+            }
+        }
+        // Free dynamically allocated memory
+        free(topCutIndices);
+        free(topMatchingCounts);
+    }
+}
+
+/**Function*************************************************************
+
+  Synopsis    [Find cuts with node i as leaf based on fanin and fanout]
+
+***********************************************************************/
+void If_NearCutEnuIOs( If_Man_t* p ) {
+    If_Obj_t * pObj; int i;
+    If_ManForEachNode(p, pObj, i) {
+        Vec_Ptr_t *vCutsFanin0 = pObj->pFanin0->vFanouts;
+        Vec_Ptr_t *vCutsFanin1 = pObj->pFanin1->vFanouts;
+        Vec_Ptr_t *vFanouts = pObj->vFanouts;
+        // Add elements from vCutsFanin0 to vNearCut
+        if (!pObj->vNearCut) {
+            // Allocate memory if not already allocated
+            pObj->vNearCut = Vec_PtrAlloc(vCutsFanin0->nSize+vCutsFanin1->nSize);
+        }
+        // node->fanin->fanout
+        for (int j = 0; j < vCutsFanin0->nSize; j++) {
+            Vec_PtrPush(pObj->vNearCut, vCutsFanin0->pArray[j]);
+        }
+        // Add elements from vCutsFanin1 to vNearCut if not already present
+        for (int j = 0; j < vCutsFanin1->nSize; j++) {
+            Vec_PtrPushUnique(pObj->vNearCut, vCutsFanin1->pArray[j]);
+        }
+        // node->fanout->fanin
+        for (int j = 0; j < vFanouts->nSize; j++) {
+            int nodetemp = *(int *)vFanouts->pArray[j];
+            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+            if (CurrNode->Type == 4) {
+                Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin0->Id);
+                Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin1->Id);
+            }
+        }
+    }
+}
+/**Function*************************************************************
+
+  Synopsis    [Find cuts based on fanin/fanout recursive search]
+
+***********************************************************************/
+int Vec_Ismemeber(Vec_Ptr_t *vNodesInCut,int numtemp) {
+    for (int j = 0; j < vNodesInCut->nSize; j++) {
+        int nodeindex = *(int *)vNodesInCut->pArray[j];
+        if (nodeindex == numtemp) {
+            return 1;
+            break;
+        }
+    }
+    return 0;
+}
+
+int FaninCount(If_Man_t* p, Vec_Ptr_t *vNodesInCut) {
+    int faninCount = 0;
+    Vec_Ptr_t *faninlist = Vec_PtrAlloc(0);
+    for (int i = 0; i < vNodesInCut->nSize; i++) {
+        int nodetemp = *(int *)vNodesInCut->pArray[i];
+        If_Obj_t *currentNode = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+        Vec_PtrPushUnique(faninlist, &currentNode->pFanin0->Id);
+        Vec_PtrPushUnique(faninlist, &currentNode->pFanin1->Id);
+    }
+    for (int i = 0; i < faninlist->nSize; i++) {
+        int nodetemp = *(int *)faninlist->pArray[i];
+        if (!Vec_Ismemeber(vNodesInCut,nodetemp)) {
+            faninCount = faninCount + 1;
+        }
+    }
+    Vec_PtrFree(faninlist);
+    return faninCount;
+}
+
+int FanoutCount(If_Man_t* p, Vec_Ptr_t *vNodesInCut) {
+    int fanoutCount = 0;
+    Vec_Ptr_t *faninlist = Vec_PtrAlloc(10);
+    for (int i = 0; i < vNodesInCut->nSize; i++) {
+        int nodetemp = *(int *)vNodesInCut->pArray[i];
+        If_Obj_t *currentNode = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+        if (currentNode->Type == 4) {
+            Vec_PtrPushUnique(faninlist, &currentNode->pFanin0->Id);
+            Vec_PtrPushUnique(faninlist, &currentNode->pFanin1->Id);
+        }
+    }
+    for (int i = 0; i < vNodesInCut->nSize; i++) {
+        int nodetemp = *(int *)vNodesInCut->pArray[i];
+        if (!Vec_Ismemeber(faninlist,nodetemp)) {
+            fanoutCount = fanoutCount + 1;
+        }
+    }
+    Vec_PtrFree(faninlist);
+    return fanoutCount;
+}
+
+void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
+                 int maxFanout, int root_level, Vec_Ptr_t *NodesInCut) {
+    // current cut's fanin/fanout number
+    int faninCount = FaninCount(p, NodesInCut);
+    int fanoutCount = FanoutCount(p, NodesInCut);
+    // only satisfy the IO limit will continue the recursive
+    if (faninCount <= maxFanin && fanoutCount <= maxFanout) {
+        // add the current satisfied cut into vKLCut
+        // the first one always with original single fanout
+        Vec_PtrPushUnique(pObj->vKLCut, NodesInCut);
+        // update curr_node to it's fanin/fanout
+        // if curr_node.level == root_level, use fanout + fanin
+        // if curr_node.level <> root_level, use fanin
+        If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
+        if (curr_node_obj->Level == root_level) {
+            if (curr_node_obj->Type == 4) {
+                for (int i = 0; i < curr_node_obj->vFanouts->nSize; i++) {
+                    int curr_node = *(int *)curr_node_obj->vFanouts->pArray[i];
+                    //Vec_PtrPushUnique(NodesInCut,curr_node_obj->vFanouts->pArray[i]);
+                    If_CoreRec(p,pObj,curr_node,maxFanin,maxFanout,root_level,NodesInCut);
+                }
+                int curr_node0 = curr_node_obj->pFanin0->Id;
+                int curr_node1 = curr_node_obj->pFanin1->Id;
+                if (curr_node0 > p->vCis->nSize) {
+                    if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin0->Id)) {
+                        Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
+                        If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
+                    }
+                }
+                if (curr_node1 > p->vCis->nSize) {
+                    if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin1->Id)) {
+                        Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
+                        If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
+                    }
+                }
+            }
+        } else {
+            if (curr_node_obj->Type == 4) {
+                int curr_node0 = curr_node_obj->pFanin0->Id;
+                int curr_node1 = curr_node_obj->pFanin1->Id;
+                if (curr_node0 > p->vCis->nSize) {
+                    if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin0->Id)) {
+                        Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
+                        If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
+                    }
+                }
+                if (curr_node1 > p->vCis->nSize) {
+                    if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin1->Id)) {
+                        Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
+                        If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
+                    }
+                }
+            }
+        }
+    } else {
+        NodesInCut->nSize--;
+    }
+    //printf("faninCount = %d\n", faninCount);
+}
+
+void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
+    If_Obj_t *pObj; int i;
+    If_ManForEachNode(p, pObj, i) {
+        // initialize the vKLCut
+        pObj->vKLCut = Vec_PtrAlloc(0);
+        // loop each node in the cut
+        for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
+            Vec_Ptr_t *NodesInCut = pObj->CutBest.vNodesInCut;
+            const int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
+            //if (curr_node == pObj->Id) {continue;}
+            int root_level = pObj->Level;
+            If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
+        }
+        for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
+            Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+            printf("Extended Cut for node %d: ",i);
+            for (int k = 0; k < Vec_PtrSize(vRow); k++) {
+                int *pNum = (int *)Vec_PtrEntry(vRow, k);
+                printf("%d ", *pNum);
+            }
+            printf("\n");
+        }
+    }
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

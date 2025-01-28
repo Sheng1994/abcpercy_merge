@@ -219,35 +219,35 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define cut expand************************/
-    // get each node's corresponding cuts as form
-    If_ManForEachNode( p, pObj, i ) {
-        pObj->vCutsWithNode = Vec_PtrAlloc(20);
-        Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
-        If_Cut_t * pCut = &pObj->CutBest;
-        for (int j=0; j<pCut->vNodesInCut->nSize;j++) {
-            int nodetemp = *(int *)pCut->vNodesInCut->pArray[j];
-            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
-            int alreadyExists = 0;
-            for (int k = 0; k < CurrNode->vCutsWithNode->nSize; k++) {
-                if (*(int *)CurrNode->vCutsWithNode->pArray[k] == pObj->Id) {
-                    alreadyExists = 1;
-                    break;
-                }
-            }
-            if (!alreadyExists) {
-                Vec_PtrPush(CurrNode->vCutsWithNode, &pObj->Id);
-            }
-        }
-    }
+    // Test-1: extend based on nodes on current cut
+    //If_CutsWithNode(p);
+    // Test-2: extend based on nodes on current leaves
+    //If_CutsWithLeaf(p);
+    // int maxCuts = 5;
+    // If_NearCutEnuLeaves(p, maxCuts);
+    // Test-3: extend based on root's fanin
+    // If_NearCutEnuIOs(p);
+    // Test-4: extend based on recursive
+    If_NearCutEnuRec(p, 4, 2);
 
-    // single out expand to dual output
+    // percy exact synthesis mapping
     int fail_count = 0;
     If_ManForEachNode( p, pObj, i ) {
-        printf("\nCuts with type current node: ");
-        for (int j=0;j<pObj->vCutsWithNode->nSize;j++) {
-            int nodetemp = *(int *)pObj->vCutsWithNode->pArray[j];
-            printf("%d ", *(int *)pObj->vCutsWithNode->pArray[j]);
+        for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
+            Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+            printf("Extended Cut for node %d: ",i);
+            for (int k = 0; k < Vec_PtrSize(vRow); k++) {
+                int *pNum = (int *)Vec_PtrEntry(vRow, k);
+                printf("%d ", *pNum);
+            }
+            //printf("\n");
         }
+        
+        Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
+        int faninnum = FaninCount(p, vNodesInCut);
+        printf("\nCuts with %d fanins: ", faninnum);
+        int fanoutnum = FanoutCount(p, vNodesInCut);
+        printf("\nCuts with %d fanouts: ", fanoutnum);
 
 	    If_Cut_t * pCut = &pObj->CutBest;
         int nleaves = pCut->nLeaves;
@@ -258,10 +258,10 @@ int If_ManPerformMappingComb( If_Man_t * p )
         printf("\n%d leaves in cut, ", nleaves);
         int status = percy_map(pCut);
         if (status==1) {
-            printf("Percy Success!\n");
+            printf("Percy Success!\n\n");
         }
         else {
-            printf("Percy Failed!\n");
+            printf("Percy Failed!\n\n");
             fail_count = fail_count + 1;
         }
     }
