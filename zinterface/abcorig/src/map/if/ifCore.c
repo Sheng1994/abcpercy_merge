@@ -228,7 +228,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // Test-3: extend based on root's fanin
     // If_NearCutEnuIOs(p);
     // Test-4: extend based on recursive
-    If_NearCutEnuRec(p, 4, 2);
+    If_NearCutEnuRec(p, 6, 3);
 
     // percy exact synthesis mapping
     int fail_count = 0;
