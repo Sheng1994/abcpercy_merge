@@ -667,7 +667,7 @@ namespace percy
                     hexStream << std::hex << std::uppercase << nibbleValue;
                 }
 
-                printf("po%d = %s\n", i + 1, hexStream.str().c_str());
+                //printf("po%d = %s\n", i + 1, hexStream.str().c_str());
                 //printVec(gates);
 
                 // Write output to file if required

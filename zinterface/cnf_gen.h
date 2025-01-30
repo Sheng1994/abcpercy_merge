@@ -11,7 +11,7 @@ extern "C" {
 
 	int percy_map(If_Cut_t * pCut);
 
-	int percymapping_main(std::vector<std::vector<int>> nets, std::vector<int> pi, 
+	int percymapping_main(std::vector<std::vector<int>> nets, std::vector<int> pi,
 		std::vector<int> po, std::vector<int> gates, std::vector<std::string> tts_all);
 
 	ABC_NAMESPACE_IMPL_END

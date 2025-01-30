@@ -20,7 +20,6 @@
 
 #include "if.h"
 #include "ifCut.c"
-#include "../../../../../zinterface/cnf_gen.cpp"
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -89,65 +88,6 @@ int If_ManPerformMapping( If_Man_t * p )
     // derive reverse top order
     p->vObjsRev = If_ManReverseOrder( p );
     return If_ManPerformMappingComb( p );
-}
-
-/*************************user define**********************************/
-
-/**Function*************************************************************
-
-  Synopsis    [DAG of each cut]
-
-***********************************************************************/
-
-void If_CutDAG(If_Man_t* p, If_Cut_t* pCut)
-{
-    // Create a new vector to hold the netDAG (2D array)
-    // Vec_Ptr_t *netDAG = Vec_PtrAlloc(pCut->vNodesInCut->nSize);  // Size based on the number of nodes in the cut
-    // Vec_Ptr_t *DagOP = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
-    pCut->netDAG = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
-    pCut->DagOP = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
-    // Iterate over the nodes in the cut
-    for (int j = 0; j < pCut->vNodesInCut->nSize; j++) {
-        // Create a new row with 3 columns
-        Vec_Ptr_t *vRow = Vec_PtrAlloc(3);
-        Vec_Ptr_t *vInv = Vec_PtrAlloc(3);
-        // Get the node corresponding to the current entry in the cut
-        If_Obj_t* pNode = (If_Obj_t*)Vec_PtrEntry(p->vObjs, *(int*)pCut->vNodesInCut->pArray[j]);
-        // Allocate memory for the fanin and node IDs
-        int *pNum1 = (int *)malloc(sizeof(int));
-        int *pInv1 = (int *)malloc(sizeof(int));
-        *pNum1 = (pNode->pFanin0 != NULL) ? pNode->pFanin0->Id : 0;
-        *pInv1 = (pNode->pFanin0 != NULL) ? pNode->fCompl0 : 0;
-        int *pNum2 = (int *)malloc(sizeof(int));
-        int *pInv2 = (int *)malloc(sizeof(int));
-        *pNum2 = (pNode->pFanin1 != NULL) ? pNode->pFanin1->Id : 0;
-        *pInv2 = (pNode->pFanin1 != NULL) ? pNode->fCompl1 : 0;
-        int *pNum3 = (int *)malloc(sizeof(int));
-        int *pInv3 = (int *)malloc(sizeof(int));
-        *pNum3 = pNode->Id; *pInv3 = pNode->fPhase;
-        // Push the values into the row (vRow)
-        Vec_PtrPush(vRow, pNum1); Vec_PtrPush(vInv, pInv1);
-        Vec_PtrPush(vRow, pNum2); Vec_PtrPush(vInv, pInv2);
-        Vec_PtrPush(vRow, pNum3); Vec_PtrPush(vInv, pInv3);
-        // Add the row to the netDAG
-        Vec_PtrPush(pCut->netDAG, vRow); Vec_PtrPush(pCut->DagOP, vInv);
-        // Optional: Print the node index (for debugging)
-        printf("%d ", *(int*)pCut->vNodesInCut->pArray[j]);
-    }
-    //printf("\n");
-    for (int i = 0; i < Vec_PtrSize(pCut->netDAG); i++) {
-        Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pCut->netDAG, i);
-        Vec_Ptr_t *vInv = (Vec_Ptr_t *)Vec_PtrEntry(pCut->DagOP, i);
-        for (int j = 0; j < Vec_PtrSize(vRow); j++) {
-            int *pNum = (int *)Vec_PtrEntry(vRow, j);
-            int *pInv = (int *)Vec_PtrEntry(vInv, j);
-            //printf("netDAG[%d][%d] = %d with %d inv\n", i, j, *pNum, *pInv);
-        }
-    }
-
-    //printf("\n");
-    // Return the 2D array (netDAG)
-    // return netDAG;
 }
 
 /**Function*************************************************************
@@ -228,11 +168,10 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // Test-3: extend based on root's fanin
     // If_NearCutEnuIOs(p);
     // Test-4: extend based on recursive
+    // Only Test-4 works well
     If_NearCutEnuRec(p, 6, 3);
-
-    // percy exact synthesis mapping
-    int fail_count = 0;
-    If_ManForEachNode( p, pObj, i ) {
+    printf("\nFinal acceptable extened results:\n");
+    If_ManForEachNode(p, pObj, i) {
         for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
             Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
             printf("Extended Cut for node %d: ",i);
@@ -240,32 +179,46 @@ int If_ManPerformMappingComb( If_Man_t * p )
                 int *pNum = (int *)Vec_PtrEntry(vRow, k);
                 printf("%d ", *pNum);
             }
-            //printf("\n");
-        }
-        
-        Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
-        int faninnum = FaninCount(p, vNodesInCut);
-        printf("\nCuts with %d fanins: ", faninnum);
-        int fanoutnum = FanoutCount(p, vNodesInCut);
-        printf("\nCuts with %d fanouts: ", fanoutnum);
-
-	    If_Cut_t * pCut = &pObj->CutBest;
-        int nleaves = pCut->nLeaves;
-        printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
-        // each node contain fanin, fanout
-        // each fanin/fanout can contain invertor
-        If_CutDAG(p, pCut);
-        printf("\n%d leaves in cut, ", nleaves);
-        int status = percy_map(pCut);
-        if (status==1) {
-            printf("Percy Success!\n\n");
-        }
-        else {
-            printf("Percy Failed!\n\n");
-            fail_count = fail_count + 1;
+            printf("\n");
         }
     }
-    printf("Failure ratio: %d/%d\n", fail_count, i);
+
+    // // percy exact synthesis mapping
+    // int fail_count = 0;
+    // If_ManForEachNode( p, pObj, i ) {
+    //     // for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
+    //     //     Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+    //     //     printf("Extended Cut for node %d: ",i);
+    //     //     for (int k = 0; k < Vec_PtrSize(vRow); k++) {
+    //     //         int *pNum = (int *)Vec_PtrEntry(vRow, k);
+    //     //         printf("%d ", *pNum);
+    //     //     }
+    //     //     //printf("\n");
+    //     // }
+    //
+    //     Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
+    //     int faninnum = FaninCount(p, vNodesInCut);
+    //     printf("\nCuts with %d fanins: ", faninnum);
+    //     int fanoutnum = FanoutCount(p, vNodesInCut);
+    //     printf("\nCuts with %d fanouts: ", fanoutnum);
+    //
+	   //  If_Cut_t * pCut = &pObj->CutBest;
+    //     int nleaves = pCut->nLeaves;
+    //     printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
+    //     // each node contain fanin, fanout
+    //     // each fanin/fanout can contain invertor
+    //     If_CutDAG(p, pCut);
+    //     printf("\n%d leaves in cut, ", nleaves);
+    //     int status = percy_map(pCut);
+    //     if (status==1) {
+    //         printf("Percy Success!\n\n");
+    //     }
+    //     else {
+    //         printf("Percy Failed!\n\n");
+    //         fail_count = fail_count + 1;
+    //     }
+    // }
+    // printf("Failure ratio: %d/%d\n", fail_count, i);
 
     if ( p->pPars->fVerbose )
     {

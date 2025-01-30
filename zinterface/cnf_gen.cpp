@@ -147,7 +147,7 @@ int percymapping_main(std::vector<std::vector<int>> nets, std::vector<int> pi,
             //printf("PO %d position %d with %d inverse\n", ipo+1,po_index[ipo]/2-1,po_index[ipo]%2);
         }
         // Print the LUT
-        printf("Final Outputs.\n");
+        //printf("Final Outputs.\n");
 
         // define the nets for verification
         // should be the same as MCluster DAG
@@ -176,7 +176,7 @@ int percymapping_main(std::vector<std::vector<int>> nets, std::vector<int> pi,
         if (last_number != 0) {
             spec.printLUT(pi, po, inv, nets, gates, truthTable, 0);
         }
-        //printf("\n");
+        // printf("\n");
     }
     return 1;
 }
@@ -475,14 +475,15 @@ int percy_map(If_Cut_t * pCut)
     new_gate2.insert(new_gate2.end(), new_gates.begin(), new_gates.end());
 
     std::vector<std::string> tts_all = spec.printLUT(PI, PO, inv, new_nets, new_gate2, truthTable,0);
-    printf("Number of PIs: %lu\n",PI.size());
+    //printf("Number of PIs: %lu\n",PI.size());
     int percy_result = 0;
-    //if (PI.size() <= 6) {
+    // here assuming the fanin/fanout limit are 6/3
+    if (PI.size() <= 6 && PO.size() <= 3) {
     percy_result = percymapping_main(new_nets, PI, PO, new_gate2, tts_all);
-    //}
-    //else {
-    //    percy_result = 0;
-    //}
+    }
+    else {
+        percy_result = 0;
+    }
     return percy_result;
     // pCut->CutTT = 'q';
 }

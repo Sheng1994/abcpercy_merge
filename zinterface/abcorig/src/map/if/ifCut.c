@@ -19,6 +19,7 @@
 ***********************************************************************/
 
 #include "if.h"
+#include "../../../../../zinterface/cnf_gen.cpp"
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1565,6 +1566,123 @@ int If_CutFilter2( If_Man_t * p, If_Obj_t * pNode, If_Cut_t * pCut )
 }
 
 /*****************************user define**********************************/
+If_Obj_t *deepCopyIfObj(const If_Obj_t *pObj) {
+    if (pObj == NULL) {
+        return NULL;
+    }
+
+    // Allocate memory for the new object
+    If_Obj_t *NewpObj = (If_Obj_t *)malloc(sizeof(If_Obj_t));
+    if (NewpObj == NULL) {
+        return NULL; // Memory allocation failed
+    }
+
+    // Copy the structure fields
+    memcpy(NewpObj, pObj, sizeof(If_Obj_t));
+
+    // Deep copy pointers that require duplication
+
+    // Fanin pointers are not allocated separately, so just copy them
+    NewpObj->pFanin0 = pObj->pFanin0;
+    NewpObj->pFanin1 = pObj->pFanin1;
+    NewpObj->pEquiv  = pObj->pEquiv;
+
+    // Deep copy vectors (assuming Vec_Ptr_t has a known deep copy function)
+    if (pObj->vFanouts) {
+        NewpObj->vFanouts = Vec_PtrDup(pObj->vFanouts);
+    }
+    if (pObj->vCutsWithNode) {
+        NewpObj->vCutsWithNode = Vec_PtrDup(pObj->vCutsWithNode);
+    }
+    if (pObj->vCutsWithLeave) {
+        NewpObj->vCutsWithLeave = Vec_PtrDup(pObj->vCutsWithLeave);
+    }
+
+    return NewpObj;
+}
+
+void freeIfObj(If_Obj_t *pObj) {
+    if (pObj == NULL) {
+        return;
+    }
+
+    // Free dynamically allocated vector pointers (assuming Vec_PtrFree is available)
+    if (pObj->vFanouts) {
+        Vec_PtrFree(pObj->vFanouts);
+    }
+    if (pObj->vCutsWithNode) {
+        Vec_PtrFree(pObj->vCutsWithNode);
+    }
+    if (pObj->vCutsWithLeave) {
+        Vec_PtrFree(pObj->vCutsWithLeave);
+    }
+    if (pObj->vNearCut) {
+        Vec_PtrFree(pObj->vNearCut);
+    }
+    if (pObj->vKLCut) {
+        Vec_PtrFree(pObj->vKLCut);
+    }
+    // Finally, free the main object
+    free(pObj);
+}
+
+
+/**Function*************************************************************
+
+  Synopsis    [DAG of each cut]
+
+***********************************************************************/
+
+void If_CutDAG(If_Man_t* p, If_Cut_t* pCut)
+{
+    // Create a new vector to hold the netDAG (2D array)
+    // Vec_Ptr_t *netDAG = Vec_PtrAlloc(pCut->vNodesInCut->nSize);  // Size based on the number of nodes in the cut
+    // Vec_Ptr_t *DagOP = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
+    pCut->netDAG = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
+    pCut->DagOP = Vec_PtrAlloc(pCut->vNodesInCut->nSize);
+    // Iterate over the nodes in the cut
+    for (int j = 0; j < pCut->vNodesInCut->nSize; j++) {
+        // Create a new row with 3 columns
+        Vec_Ptr_t *vRow = Vec_PtrAlloc(3);
+        Vec_Ptr_t *vInv = Vec_PtrAlloc(3);
+        // Get the node corresponding to the current entry in the cut
+        If_Obj_t* pNode = (If_Obj_t*)Vec_PtrEntry(p->vObjs, *(int*)pCut->vNodesInCut->pArray[j]);
+        // Allocate memory for the fanin and node IDs
+        int *pNum1 = (int *)malloc(sizeof(int));
+        int *pInv1 = (int *)malloc(sizeof(int));
+        *pNum1 = (pNode->pFanin0 != NULL) ? pNode->pFanin0->Id : 0;
+        *pInv1 = (pNode->pFanin0 != NULL) ? pNode->fCompl0 : 0;
+        int *pNum2 = (int *)malloc(sizeof(int));
+        int *pInv2 = (int *)malloc(sizeof(int));
+        *pNum2 = (pNode->pFanin1 != NULL) ? pNode->pFanin1->Id : 0;
+        *pInv2 = (pNode->pFanin1 != NULL) ? pNode->fCompl1 : 0;
+        int *pNum3 = (int *)malloc(sizeof(int));
+        int *pInv3 = (int *)malloc(sizeof(int));
+        *pNum3 = pNode->Id; *pInv3 = pNode->fPhase;
+        // Push the values into the row (vRow)
+        Vec_PtrPush(vRow, pNum1); Vec_PtrPush(vInv, pInv1);
+        Vec_PtrPush(vRow, pNum2); Vec_PtrPush(vInv, pInv2);
+        Vec_PtrPush(vRow, pNum3); Vec_PtrPush(vInv, pInv3);
+        // Add the row to the netDAG
+        Vec_PtrPush(pCut->netDAG, vRow); Vec_PtrPush(pCut->DagOP, vInv);
+        // Optional: Print the node index (for debugging)
+        //printf("%d ", *(int*)pCut->vNodesInCut->pArray[j]);
+    }
+    //printf("\n");
+    for (int i = 0; i < Vec_PtrSize(pCut->netDAG); i++) {
+        Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pCut->netDAG, i);
+        Vec_Ptr_t *vInv = (Vec_Ptr_t *)Vec_PtrEntry(pCut->DagOP, i);
+        for (int j = 0; j < Vec_PtrSize(vRow); j++) {
+            int *pNum = (int *)Vec_PtrEntry(vRow, j);
+            int *pInv = (int *)Vec_PtrEntry(vInv, j);
+            //printf("netDAG[%d][%d] = %d with %d inv\n", i, j, *pNum, *pInv);
+        }
+    }
+
+    //printf("\n");
+    // Return the 2D array (netDAG)
+    // return netDAG;
+}
 
 /**Function*************************************************************
 
@@ -1879,7 +1997,7 @@ void If_NearCutEnuIOs( If_Man_t* p ) {
         }
     }
 }
-/**Function*************************************************************
+/**Function******************user define********************************
 
   Synopsis    [Find cuts based on fanin/fanout recursive search]
 
@@ -1935,16 +2053,51 @@ int FanoutCount(If_Man_t* p, Vec_Ptr_t *vNodesInCut) {
     return fanoutCount;
 }
 
+int vKLCutRepeated(If_Obj_t *pObj, Vec_Ptr_t *vNodesInCut) {
+    int isrepeated = 1;  // Initialize once
+    for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
+        Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+        if (vRow->nSize != vNodesInCut->nSize) {
+            continue;
+        } else {
+            isrepeated = 1;  // Reset for each row comparison
+            for (int k = 0; k < vNodesInCut->nSize; k++) {
+                int *pNum = (int *)Vec_PtrEntry(vNodesInCut, k);
+                isrepeated = isrepeated & Vec_Ismemeber(vRow, *pNum);  // Corrected function name
+                if (!isrepeated) { break; }
+            }
+        }
+        if (isrepeated) { return 1; }  // Return immediately if found repeated
+    }
+    return 0;  // If no match found, return false
+}
+
+void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
+    // temp container for NodesInCut pointers
+    Vec_Ptr_t *NodesInCutNew = Vec_PtrAlloc(10);
+    for (int k = 0; k < Vec_PtrSize(NodesInCut); k++) {
+        int *pNum = (int *)Vec_PtrEntry(NodesInCut, k);
+        If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *pNum);
+        Vec_PtrPush(NodesInCutNew, &curr_node_obj->Id);
+    }
+    Vec_PtrPush(pObj->vKLCut, NodesInCutNew);
+}
+
 void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
                  int maxFanout, int root_level, Vec_Ptr_t *NodesInCut) {
     // current cut's fanin/fanout number
     int faninCount = FaninCount(p, NodesInCut);
     int fanoutCount = FanoutCount(p, NodesInCut);
+
     // only satisfy the IO limit will continue the recursive
     if (faninCount <= maxFanin && fanoutCount <= maxFanout) {
         // add the current satisfied cut into vKLCut
+        // make sure the NodesInCut is not repeated in vKLCut
+        int ifcontinue = pObj->vKLCut->nSize==0 || !vKLCutRepeated(pObj, NodesInCut);
         // the first one always with original single fanout
-        Vec_PtrPushUnique(pObj->vKLCut, NodesInCut);
+        if (ifcontinue) {
+            vKLAdd(p, pObj, NodesInCut);
+         }
         // update curr_node to it's fanin/fanout
         // if curr_node.level == root_level, use fanout + fanin
         // if curr_node.level < root_level, use fanin + fanout
@@ -2026,9 +2179,11 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
     If_ManForEachNode(p, pObj, i) {
         // initialize the vKLCut
         pObj->vKLCut = Vec_PtrAlloc(0);
+        //printf("\nProcessing node %d:\n",pObj->Id);
         // loop each node in the cut
         for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
-            Vec_Ptr_t *NodesInCut = pObj->CutBest.vNodesInCut;
+            Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
+            Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
             const int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
             //if (curr_node == pObj->Id) {continue;}
             int root_level = pObj->Level;
@@ -2036,16 +2191,33 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
             If_ManCleanMarkV( p );
             If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
         }
-        for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
-            Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-            printf("Extended Cut for node %d: ",i);
-            for (int k = 0; k < Vec_PtrSize(vRow); k++) {
-                int *pNum = (int *)Vec_PtrEntry(vRow, k);
+        // remove extended cut failed percy
+        for (int j = 0; j < pObj->vKLCut->nSize; j++) {
+            Vec_Ptr_t *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+            // percy verification
+            // deep copy to realize packing for percy mapping function
+            If_Obj_t *tempObj = deepCopyIfObj(pObj);
+            Vec_PtrCopy( tempObj->CutBest.vNodesInCut, NodesInCut);
+            // print the nodes in current extended cut
+            printf("Extended Cut for node %d: ",pObj->Id);
+            for (int k = 0; k < Vec_PtrSize(NodesInCut); k++) {
+                int *pNum = (int *)Vec_PtrEntry(NodesInCut, k);
                 printf("%d ", *pNum);
             }
             printf("\n");
+            If_Cut_t *pCutTemp = &tempObj->CutBest;
+            If_CutDAG(p, pCutTemp);
+            int status = percy_map(pCutTemp);
+            if (status != 1) {
+                printf("Percy Verification failed!\n");
+                // remove the current extended solution
+                Vec_PtrRemove( pObj->vKLCut, NodesInCut );
+            } else {
+                printf("Percy Verification successful!\n");
+            }
         }
     }
+    If_ManCleanMarkV( p );
 }
 
 ////////////////////////////////////////////////////////////////////////
