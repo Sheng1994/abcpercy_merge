@@ -355,8 +355,8 @@ struct If_Obj_t_
     If_Obj_t *         pFanin1;       // the second fanin
     Vec_Ptr_t *        vFanouts;      // the vector of fanouts
     Vec_Ptr_t *        vCutsWithNode; // all cuts contain node i
-    Vec_Ptr_t *        vCutsWithLeave; // all cuts contain leave i
-    Vec_Ptr_t *        vNearCut;      // cuts for multiple output cluster
+    // Vec_Ptr_t *        vCutsWithLeave; // all cuts contain leave i
+    // Vec_Ptr_t *        vNearCut;      // cuts for multiple output cluster
     Vec_Ptr_t *        vKLCut;        // extended KL cut with node index
     If_Obj_t *         pEquiv;        // the choice node
     float              EstRefs;       // estimated reference counter

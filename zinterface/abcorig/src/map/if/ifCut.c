@@ -1594,9 +1594,9 @@ If_Obj_t *deepCopyIfObj(const If_Obj_t *pObj) {
     if (pObj->vCutsWithNode) {
         NewpObj->vCutsWithNode = Vec_PtrDup(pObj->vCutsWithNode);
     }
-    if (pObj->vCutsWithLeave) {
-        NewpObj->vCutsWithLeave = Vec_PtrDup(pObj->vCutsWithLeave);
-    }
+    // if (pObj->vCutsWithLeave) {
+    //     NewpObj->vCutsWithLeave = Vec_PtrDup(pObj->vCutsWithLeave);
+    // }
 
     return NewpObj;
 }
@@ -1613,12 +1613,12 @@ void freeIfObj(If_Obj_t *pObj) {
     if (pObj->vCutsWithNode) {
         Vec_PtrFree(pObj->vCutsWithNode);
     }
-    if (pObj->vCutsWithLeave) {
-        Vec_PtrFree(pObj->vCutsWithLeave);
-    }
-    if (pObj->vNearCut) {
-        Vec_PtrFree(pObj->vNearCut);
-    }
+    // if (pObj->vCutsWithLeave) {
+    //     Vec_PtrFree(pObj->vCutsWithLeave);
+    // }
+    // if (pObj->vNearCut) {
+    //     Vec_PtrFree(pObj->vNearCut);
+    // }
     if (pObj->vKLCut) {
         Vec_PtrFree(pObj->vKLCut);
     }
@@ -1848,155 +1848,155 @@ void If_CutsWithNode(If_Man_t* p) {
   Synopsis    [Find cuts with node i as leaf]
 
 ***********************************************************************/
-void If_CutsWithLeaf(If_Man_t* p) {
-    If_Obj_t * pObj; int i;
-    If_ManForEachObj(p, pObj, i) {
-        pObj->vCutsWithLeave = Vec_PtrAlloc(20);
-        //Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
-        If_Cut_t * pCut = &pObj->CutBest;
-        for (int j=0; j<pCut->nLeaves;j++) {
-            int nodetemp = pCut->pLeaves[j];
-            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
-            int alreadyExists = 0;
-            if (CurrNode->vCutsWithLeave!=NULL) {
-                for (int k = 0; k < CurrNode->vCutsWithLeave->nSize; k++) {
-                    if (*(int *)CurrNode->vCutsWithLeave->pArray[k] == pObj->Id) {
-                        alreadyExists = 1;
-                        break;
-                    }
-                }
-            }
-            // if (!CurrNode->vCutsWithLeave) {
-            //     CurrNode->vCutsWithLeave = Vec_PtrAlloc(20);  // Allocate memory if not already allocated
-            // }
-            if (!alreadyExists) {
-                Vec_PtrPush(CurrNode->vCutsWithLeave, &pObj->Id);
-            }
-        }
-    }
-}
+// void If_CutsWithLeaf(If_Man_t* p) {
+//     If_Obj_t * pObj; int i;
+//     If_ManForEachObj(p, pObj, i) {
+//         pObj->vCutsWithLeave = Vec_PtrAlloc(20);
+//         //Vec_PtrPush(pObj->vCutsWithNode, &pObj->Id);
+//         If_Cut_t * pCut = &pObj->CutBest;
+//         for (int j=0; j<pCut->nLeaves;j++) {
+//             int nodetemp = pCut->pLeaves[j];
+//             If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+//             int alreadyExists = 0;
+//             if (CurrNode->vCutsWithLeave!=NULL) {
+//                 for (int k = 0; k < CurrNode->vCutsWithLeave->nSize; k++) {
+//                     if (*(int *)CurrNode->vCutsWithLeave->pArray[k] == pObj->Id) {
+//                         alreadyExists = 1;
+//                         break;
+//                     }
+//                 }
+//             }
+//             // if (!CurrNode->vCutsWithLeave) {
+//             //     CurrNode->vCutsWithLeave = Vec_PtrAlloc(20);  // Allocate memory if not already allocated
+//             // }
+//             if (!alreadyExists) {
+//                 Vec_PtrPush(CurrNode->vCutsWithLeave, &pObj->Id);
+//             }
+//         }
+//     }
+// }
 /**Function*************************************************************
 
   Synopsis    [Find cuts with node i as leaf based on leaves]
 
 ***********************************************************************/
-void If_NearCutEnuLeaves(If_Man_t* p, int maxCuts) {
-
-    If_Obj_t * pObj; int i;
-    If_ManForEachNode(p, pObj, i) {
-        If_Cut_t *currentCut = &pObj->CutBest;
-        int *currentLeaves = pObj->CutBest.pLeaves;
-        int selectedCutIndex = 0;
-        int maxMatchingLeaves = 0;
-
-        // Dynamically allocate memory for storing top cuts and their counts
-        int *topCutIndices = (int *)malloc(maxCuts * sizeof(int));
-        int *topMatchingCounts = (int *)malloc(maxCuts * sizeof(int));
-
-        // Initialize topCutIndices and topMatchingCounts arrays
-        for (int index = 0; index < maxCuts; index++) {
-            topCutIndices[index] = -1;  // Initialize with invalid values
-            topMatchingCounts[index] = 0; // Initialize counts to 0
-        }
-        for (int leafIndex = 0; leafIndex < currentCut->nLeaves; leafIndex++) {
-            int currentNodeIndex = currentCut->pLeaves[leafIndex];
-            If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
-            for (int cutIndexInNode = 0; cutIndexInNode < currentNode->vCutsWithLeave->nSize; cutIndexInNode++) {
-                int candidateCutIndex = *(int *)currentNode->vCutsWithLeave->pArray[cutIndexInNode];
-                if (pObj->Id == candidateCutIndex) {
-                    continue;  // Skip the node itself
-                }
-                // Check if candidateCutIndex already exists in topCutIndices
-                int isDuplicate = 0;
-                for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
-                    if (topCutIndices[topCutIndex] == candidateCutIndex) {
-                        isDuplicate = 1;  // Set flag if duplicate is found
-                        break;
-                    }
-                }
-                if (isDuplicate) {
-                    continue;  // Skip adding this candidateCutIndex if it's a duplicate
-                }
-                If_Obj_t *candidateCutNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, candidateCutIndex);
-                int *candidateCutLeaves = candidateCutNode->CutBest.pLeaves;
-                int matchingLeavesCount = 0;
-                // Compare leaves between currentCut and candidateCutNode
-                for (int currentLeafIndex = 0; currentLeafIndex < currentCut->nLeaves; currentLeafIndex++) {
-                    for (int candidateLeafIndex = 0; candidateLeafIndex < candidateCutNode->CutBest.nLeaves; candidateLeafIndex++) {
-                        if (currentLeaves[currentLeafIndex] == candidateCutLeaves[candidateLeafIndex]) {
-                            matchingLeavesCount++;
-                            break;
-                        }
-                    }
-                }
-                // Insert the current candidateCutIndex and matchingLeavesCount into the topCuts array if it's one of the top N
-                for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
-                    if (matchingLeavesCount > topMatchingCounts[topCutIndex]) {
-                        // Shift the elements down
-                        for (int shiftIndex = maxCuts - 1; shiftIndex > topCutIndex; shiftIndex--) {
-                            topMatchingCounts[shiftIndex] = topMatchingCounts[shiftIndex - 1];
-                            topCutIndices[shiftIndex] = topCutIndices[shiftIndex - 1];
-                        }
-                        topMatchingCounts[topCutIndex] = matchingLeavesCount;
-                        topCutIndices[topCutIndex] = candidateCutIndex;
-                        break;
-                    }
-                }
-            }
-        }
-        // Store the top cuts in pObj->vNearCut
-        if (!pObj->vNearCut) {
-            pObj->vNearCut = Vec_PtrAlloc(maxCuts);  // Allocate memory if not already allocated
-        }
-        // Push the top cuts to the vector
-        for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
-            if (topCutIndices[topCutIndex] > p->vCis->nSize) {  // Only add valid cuts
-                Vec_PtrPush(pObj->vNearCut, &topCutIndices[topCutIndex]);
-                printf("Selected Cut Index %d for Node %d with %d matching leaves is: %d\n",
-                       topCutIndex + 1, i, topMatchingCounts[topCutIndex], topCutIndices[topCutIndex]);
-            }
-        }
-        // Free dynamically allocated memory
-        free(topCutIndices);
-        free(topMatchingCounts);
-    }
-}
+// void If_NearCutEnuLeaves(If_Man_t* p, int maxCuts) {
+//
+//     If_Obj_t * pObj; int i;
+//     If_ManForEachNode(p, pObj, i) {
+//         If_Cut_t *currentCut = &pObj->CutBest;
+//         int *currentLeaves = pObj->CutBest.pLeaves;
+//         int selectedCutIndex = 0;
+//         int maxMatchingLeaves = 0;
+//
+//         // Dynamically allocate memory for storing top cuts and their counts
+//         int *topCutIndices = (int *)malloc(maxCuts * sizeof(int));
+//         int *topMatchingCounts = (int *)malloc(maxCuts * sizeof(int));
+//
+//         // Initialize topCutIndices and topMatchingCounts arrays
+//         for (int index = 0; index < maxCuts; index++) {
+//             topCutIndices[index] = -1;  // Initialize with invalid values
+//             topMatchingCounts[index] = 0; // Initialize counts to 0
+//         }
+//         for (int leafIndex = 0; leafIndex < currentCut->nLeaves; leafIndex++) {
+//             int currentNodeIndex = currentCut->pLeaves[leafIndex];
+//             If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
+//             for (int cutIndexInNode = 0; cutIndexInNode < currentNode->vCutsWithLeave->nSize; cutIndexInNode++) {
+//                 int candidateCutIndex = *(int *)currentNode->vCutsWithLeave->pArray[cutIndexInNode];
+//                 if (pObj->Id == candidateCutIndex) {
+//                     continue;  // Skip the node itself
+//                 }
+//                 // Check if candidateCutIndex already exists in topCutIndices
+//                 int isDuplicate = 0;
+//                 for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+//                     if (topCutIndices[topCutIndex] == candidateCutIndex) {
+//                         isDuplicate = 1;  // Set flag if duplicate is found
+//                         break;
+//                     }
+//                 }
+//                 if (isDuplicate) {
+//                     continue;  // Skip adding this candidateCutIndex if it's a duplicate
+//                 }
+//                 If_Obj_t *candidateCutNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, candidateCutIndex);
+//                 int *candidateCutLeaves = candidateCutNode->CutBest.pLeaves;
+//                 int matchingLeavesCount = 0;
+//                 // Compare leaves between currentCut and candidateCutNode
+//                 for (int currentLeafIndex = 0; currentLeafIndex < currentCut->nLeaves; currentLeafIndex++) {
+//                     for (int candidateLeafIndex = 0; candidateLeafIndex < candidateCutNode->CutBest.nLeaves; candidateLeafIndex++) {
+//                         if (currentLeaves[currentLeafIndex] == candidateCutLeaves[candidateLeafIndex]) {
+//                             matchingLeavesCount++;
+//                             break;
+//                         }
+//                     }
+//                 }
+//                 // Insert the current candidateCutIndex and matchingLeavesCount into the topCuts array if it's one of the top N
+//                 for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+//                     if (matchingLeavesCount > topMatchingCounts[topCutIndex]) {
+//                         // Shift the elements down
+//                         for (int shiftIndex = maxCuts - 1; shiftIndex > topCutIndex; shiftIndex--) {
+//                             topMatchingCounts[shiftIndex] = topMatchingCounts[shiftIndex - 1];
+//                             topCutIndices[shiftIndex] = topCutIndices[shiftIndex - 1];
+//                         }
+//                         topMatchingCounts[topCutIndex] = matchingLeavesCount;
+//                         topCutIndices[topCutIndex] = candidateCutIndex;
+//                         break;
+//                     }
+//                 }
+//             }
+//         }
+//         // Store the top cuts in pObj->vNearCut
+//         if (!pObj->vNearCut) {
+//             pObj->vNearCut = Vec_PtrAlloc(maxCuts);  // Allocate memory if not already allocated
+//         }
+//         // Push the top cuts to the vector
+//         for (int topCutIndex = 0; topCutIndex < maxCuts; topCutIndex++) {
+//             if (topCutIndices[topCutIndex] > p->vCis->nSize) {  // Only add valid cuts
+//                 Vec_PtrPush(pObj->vNearCut, &topCutIndices[topCutIndex]);
+//                 printf("Selected Cut Index %d for Node %d with %d matching leaves is: %d\n",
+//                        topCutIndex + 1, i, topMatchingCounts[topCutIndex], topCutIndices[topCutIndex]);
+//             }
+//         }
+//         // Free dynamically allocated memory
+//         free(topCutIndices);
+//         free(topMatchingCounts);
+//     }
+// }
 
 /**Function*************************************************************
 
   Synopsis    [Find cuts with node i as leaf based on fanin and fanout]
 
 ***********************************************************************/
-void If_NearCutEnuIOs( If_Man_t* p ) {
-    If_Obj_t * pObj; int i;
-    If_ManForEachNode(p, pObj, i) {
-        Vec_Ptr_t *vCutsFanin0 = pObj->pFanin0->vFanouts;
-        Vec_Ptr_t *vCutsFanin1 = pObj->pFanin1->vFanouts;
-        Vec_Ptr_t *vFanouts = pObj->vFanouts;
-        // Add elements from vCutsFanin0 to vNearCut
-        if (!pObj->vNearCut) {
-            // Allocate memory if not already allocated
-            pObj->vNearCut = Vec_PtrAlloc(vCutsFanin0->nSize+vCutsFanin1->nSize);
-        }
-        // node->fanin->fanout
-        for (int j = 0; j < vCutsFanin0->nSize; j++) {
-            Vec_PtrPush(pObj->vNearCut, vCutsFanin0->pArray[j]);
-        }
-        // Add elements from vCutsFanin1 to vNearCut if not already present
-        for (int j = 0; j < vCutsFanin1->nSize; j++) {
-            Vec_PtrPushUnique(pObj->vNearCut, vCutsFanin1->pArray[j]);
-        }
-        // node->fanout->fanin
-        for (int j = 0; j < vFanouts->nSize; j++) {
-            int nodetemp = *(int *)vFanouts->pArray[j];
-            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
-            if (CurrNode->Type == 4) {
-                Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin0->Id);
-                Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin1->Id);
-            }
-        }
-    }
-}
+// void If_NearCutEnuIOs( If_Man_t* p ) {
+//     If_Obj_t * pObj; int i;
+//     If_ManForEachNode(p, pObj, i) {
+//         Vec_Ptr_t *vCutsFanin0 = pObj->pFanin0->vFanouts;
+//         Vec_Ptr_t *vCutsFanin1 = pObj->pFanin1->vFanouts;
+//         Vec_Ptr_t *vFanouts = pObj->vFanouts;
+//         // Add elements from vCutsFanin0 to vNearCut
+//         if (!pObj->vNearCut) {
+//             // Allocate memory if not already allocated
+//             pObj->vNearCut = Vec_PtrAlloc(vCutsFanin0->nSize+vCutsFanin1->nSize);
+//         }
+//         // node->fanin->fanout
+//         for (int j = 0; j < vCutsFanin0->nSize; j++) {
+//             Vec_PtrPush(pObj->vNearCut, vCutsFanin0->pArray[j]);
+//         }
+//         // Add elements from vCutsFanin1 to vNearCut if not already present
+//         for (int j = 0; j < vCutsFanin1->nSize; j++) {
+//             Vec_PtrPushUnique(pObj->vNearCut, vCutsFanin1->pArray[j]);
+//         }
+//         // node->fanout->fanin
+//         for (int j = 0; j < vFanouts->nSize; j++) {
+//             int nodetemp = *(int *)vFanouts->pArray[j];
+//             If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, nodetemp);
+//             if (CurrNode->Type == 4) {
+//                 Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin0->Id);
+//                 Vec_PtrPushUnique(pObj->vNearCut, &CurrNode->pFanin1->Id);
+//             }
+//         }
+//     }
+// }
 /**Function******************user define********************************
 
   Synopsis    [Find cuts based on fanin/fanout recursive search]
