@@ -357,7 +357,15 @@ struct If_Obj_t_
     Vec_Ptr_t *        vCutsWithNode; // all cuts contain node i
     // Vec_Ptr_t *        vCutsWithLeave; // all cuts contain leave i
     // Vec_Ptr_t *        vNearCut;      // cuts for multiple output cluster
+
     Vec_Ptr_t *        vKLCut;        // extended KL cut with node index
+    Vec_Ptr_t *        vBestKLCut;        // extended Best KL cut with node index
+    float              KLArea;          // area (or area-flow) of the cut
+    float              KLEdge;          // the edge flow
+    float              KLPower;         // the power flow
+    float              KLDelay;         // delay of the cut
+    int                KLLeaves;        // number of leaves
+
     If_Obj_t *         pEquiv;        // the choice node
     float              EstRefs;       // estimated reference counter
     float              Required;      // required time of the onde

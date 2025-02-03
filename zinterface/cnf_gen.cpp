@@ -477,9 +477,10 @@ int percy_map(If_Cut_t * pCut)
     std::vector<std::string> tts_all = spec.printLUT(PI, PO, inv, new_nets, new_gate2, truthTable,0);
     //printf("Number of PIs: %lu\n",PI.size());
     int percy_result = 0;
+    if (new_nets.size() < 5) {return percy_result = 1;}
     // here assuming the fanin/fanout limit are 6/3
     if (PI.size() <= 6 && PO.size() <= 3) {
-    percy_result = percymapping_main(new_nets, PI, PO, new_gate2, tts_all);
+        percy_result = percymapping_main(new_nets, PI, PO, new_gate2, tts_all);
     }
     else {
         percy_result = 0;

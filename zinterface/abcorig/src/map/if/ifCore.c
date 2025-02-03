@@ -172,53 +172,56 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_NearCutEnuRec(p, 6, 3);
     printf("\nFinal acceptable extened results:\n");
     If_ManForEachNode(p, pObj, i) {
-        for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
-            Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-            printf("Extended Cut for node %d: ",i);
-            for (int k = 0; k < Vec_PtrSize(vRow); k++) {
-                int *pNum = (int *)Vec_PtrEntry(vRow, k);
-                printf("%d ", *pNum);
-            }
-            printf("\n");
+        printf("Extended Cut for node %d: ",i);
+        for (int k = 0; k < pObj->vBestKLCut->nSize; k++) {
+            int *pNum = (int *)Vec_PtrEntry(pObj->vBestKLCut, k);
+            printf("%d ", *pNum);
         }
+        printf("\n");
     }
 
-    // // percy exact synthesis mapping
-    // int fail_count = 0;
-    // If_ManForEachNode( p, pObj, i ) {
-    //     // for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
-    //     //     Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-    //     //     printf("Extended Cut for node %d: ",i);
-    //     //     for (int k = 0; k < Vec_PtrSize(vRow); k++) {
-    //     //         int *pNum = (int *)Vec_PtrEntry(vRow, k);
-    //     //         printf("%d ", *pNum);
-    //     //     }
-    //     //     //printf("\n");
-    //     // }
-    //
-    //     Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
-    //     int faninnum = FaninCount(p, vNodesInCut);
-    //     printf("\nCuts with %d fanins: ", faninnum);
-    //     int fanoutnum = FanoutCount(p, vNodesInCut);
-    //     printf("\nCuts with %d fanouts: ", fanoutnum);
-    //
-	   //  If_Cut_t * pCut = &pObj->CutBest;
-    //     int nleaves = pCut->nLeaves;
-    //     printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
-    //     // each node contain fanin, fanout
-    //     // each fanin/fanout can contain invertor
-    //     If_CutDAG(p, pCut);
-    //     printf("\n%d leaves in cut, ", nleaves);
-    //     int status = percy_map(pCut);
-    //     if (status==1) {
-    //         printf("Percy Success!\n\n");
-    //     }
-    //     else {
-    //         printf("Percy Failed!\n\n");
-    //         fail_count = fail_count + 1;
-    //     }
-    // }
-    // printf("Failure ratio: %d/%d\n", fail_count, i);
+    // percy exact synthesis mapping
+    int fail_count = 0;
+    If_ManForEachNode( p, pObj, i ) {
+        // for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
+        //     Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+        //     printf("Extended Cut for node %d: ",i);
+        //     for (int k = 0; k < Vec_PtrSize(vRow); k++) {
+        //         int *pNum = (int *)Vec_PtrEntry(vRow, k);
+        //         printf("%d ", *pNum);
+        //     }
+        //     //printf("\n");
+        // }
+
+        // Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
+        Vec_Ptr_t *vNodesInCut = pObj->vBestKLCut;
+        int faninnum = FaninCount(p, vNodesInCut)->nSize;
+        printf("\nCuts with %d fanins: ", faninnum);
+        int fanoutnum = FanoutCount(p, vNodesInCut)->nSize;
+        printf("\nCuts with %d fanouts: ", fanoutnum);
+
+	    If_Cut_t * pCut = &pObj->CutBest;
+        int nleaves = pCut->nLeaves;
+        printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
+        for (int j = 0; j < Vec_PtrSize(vNodesInCut); j++) {
+            int *pNum = (int *)Vec_PtrEntry(vNodesInCut, j);
+            printf("%d ", *pNum);
+        }
+        printf("\n");
+        // each node contain fanin, fanout
+        // each fanin/fanout can contain invertor
+        // If_CutDAG(p, pCut);
+        // printf("\n%d leaves in cut, ", nleaves);
+        // int status = percy_map(pCut);
+        // if (status==1) {
+        //     printf("Percy Success!\n\n");
+        // }
+        // else {
+        //     printf("Percy Failed!\n\n");
+        //     fail_count = fail_count + 1;
+        // }
+    }
+    printf("Failure ratio: %d/%d\n", fail_count, i);
 
     if ( p->pPars->fVerbose )
     {
