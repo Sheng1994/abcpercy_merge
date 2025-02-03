@@ -567,6 +567,7 @@ void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut
     assert( byte_p == decompArray[0] );
 }
 
+/******************************user define*********************************/
 /**Function*************************************************************
 
   Synopsis    [Derive one node after FPGA mapping.]
@@ -592,6 +593,40 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     // get the parameters of the best cut
     pCutBest = If_ObjCutBest( pIfObj );
 
+    // create a new node 
+    pNodeNew = Abc_NtkCreateNode( pNtkNew );
+//    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
+    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm &&
+         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserLut2D && !pIfMan->pPars->fUserRecLib &&
+         !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
+        If_CutRotatePins( pIfMan, pCutBest );
+
+    If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+
+    // set the level of the new node
+    pNodeNew->Level = Abc_ObjLevelNew( pNodeNew );
+
+    pNodeNew->pData = Abc_NodeIfToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pIfObj );
+
+    If_ObjSetCopy( pIfObj, pNodeNew );
+    return pNodeNew;
+}
+
+Abc_Obj_t * Abc_NodeFromIf_rec_orig( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover )
+{
+    Abc_Obj_t * pNodeNew;
+    If_Cut_t * pCutBest;
+    If_Obj_t * pIfLeaf;
+    int i;
+    // return if the result if known
+    pNodeNew = (Abc_Obj_t *)If_ObjCopy( pIfObj );
+    if ( pNodeNew )
+        return pNodeNew;
+    assert( pIfObj->Type == IF_AND );
+    // get the parameters of the best cut
+    pCutBest = If_ObjCutBest( pIfObj );
+
     if ( pIfMan->pPars->fUserSesLib )
     {
         // create the subgraph composed of Abc_Obj_t nodes based on the given cut
@@ -602,10 +637,10 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         If_ObjSetCopy( pIfObj, pNodeNew );
         return pNodeNew;
     }
-    // create a new node 
+    // create a new node
     pNodeNew = Abc_NtkCreateNode( pNtkNew );
 //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm && 
+    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm &&
          !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserLut2D && !pIfMan->pPars->fUserRecLib &&
          !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
@@ -631,20 +666,20 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     if ( pIfMan->pPars->fTruth )
     {
         if ( pIfMan->pPars->fUseBdds )
-        { 
-            // transform truth table into the BDD 
+        {
+            // transform truth table into the BDD
 #ifdef ABC_USE_CUDD
-            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref((DdNode *)pNodeNew->pData); 
+            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref((DdNode *)pNodeNew->pData);
 #endif
         }
         else if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
-        { 
-            // transform truth table into the BDD 
+        {
+            // transform truth table into the BDD
 #ifdef ABC_USE_CUDD
-            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData); 
+            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData);
 #endif
         }
-        else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 ) 
+        else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 )
         {
             // transform truth table into the SOP
             int RetValue = Kit_TruthIsop( If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), vCover, 1 );
@@ -671,12 +706,12 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         else if ( pIfMan->pPars->fUserRecLib )
         {
             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
-            pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj ); 
+            pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj );
         }
         else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
         {
             extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
-            Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew ); 
+            Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew );
         }
         else
         {
