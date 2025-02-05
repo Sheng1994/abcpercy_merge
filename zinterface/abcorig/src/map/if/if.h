@@ -315,7 +315,8 @@ struct If_Cut_t_
     /****************user define******************/
     Vec_Ptr_t *        vNodesInCut;   // all nodes in the cut
     Vec_Ptr_t *        netDAG;        // the DAG info of the cut
-    Vec_Ptr_t *        DagOP;        // the OP info of the cut
+    Vec_Ptr_t *        DagOP;         // the OP info of the cut
+    Vec_Ptr_t *        klRoot;        // the roots of best KL Cut
 
     unsigned           nLimit  :  8;  // the maximum number of leaves
     unsigned           nLeaves :  8;  // the number of leaves
@@ -359,12 +360,14 @@ struct If_Obj_t_
     // Vec_Ptr_t *        vNearCut;      // cuts for multiple output cluster
 
     Vec_Ptr_t *        vKLCut;        // extended KL cut with node index
-    Vec_Ptr_t *        vBestKLCut;        // extended Best KL cut with node index
-    float              KLArea;          // area (or area-flow) of the cut
-    float              KLEdge;          // the edge flow
-    float              KLPower;         // the power flow
-    float              KLDelay;         // delay of the cut
-    int                KLLeaves;        // number of leaves
+    Vec_Ptr_t *        vBestKLCut;    // extended Best KL cut with node index
+    Vec_Ptr_t *        vBestKLFanins;  // extended Best KL cut fanins
+    Vec_Ptr_t *        vBestKLFanouts;  // extended Best KL cut fanouts
+    float              KLArea;        // area (or area-flow) of the cut
+    float              KLEdge;        // the edge flow
+    float              KLPower;       // the power flow
+    float              KLDelay;       // delay of the cut
+    int                KLLeaves;      // number of leaves
 
     If_Obj_t *         pEquiv;        // the choice node
     float              EstRefs;       // estimated reference counter

@@ -346,19 +346,23 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     If_ManCleanCutData( pIfMan );
     // make the mapper point to the new network
     If_ObjSetCopy( If_ManConst1(pIfMan), Abc_NtkCreateNodeConst1(pNtkNew) );
+    // mark all Cis as copied
     Abc_NtkForEachCi( pNtk, pNode, i )
         If_ObjSetCopy( If_ManCi(pIfMan, i), pNode->pCopy );
 
     // process the nodes in topological order
     vCover = Vec_IntAlloc( 1 << 16 );
+    If_ManCleanMarkV( pIfMan );
     pProgress = Extra_ProgressBarStart( stdout, Abc_NtkCoNum(pNtk) );
     Abc_NtkForEachCo( pNtk, pNode, i )
     {
         Extra_ProgressBarUpdate( pProgress, i, "Final" );
+        Vec_Ptr_t * vLeavesUsed = Vec_PtrAlloc(0);
         pNodeNew = Abc_NodeFromIf_rec( pNtkNew, pIfMan, If_ObjFanin0(If_ManCo(pIfMan, i)), vCover );
         pNodeNew = Abc_ObjNotCond( pNodeNew, If_ObjFaninC0(If_ManCo(pIfMan, i)) );
         Abc_ObjAddFanin( pNode->pCopy, pNodeNew );
     }
+    If_ManCleanMarkV( pIfMan );
     Extra_ProgressBarStop( pProgress );
     Vec_IntFree( vCover );
 
@@ -601,8 +605,36 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
          !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
         If_CutRotatePins( pIfMan, pCutBest );
 
-    If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+    If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i ) {
+        // output solution-1: if the leaf already exists in precious KL Cut, skip
+        //if (pIfLeaf->fMark == 1) {
+        //     continue;
+        // }
+        // if ( pIfLeaf->Type == 4 ) {
+        //     // mark current KL Cut roots a used
+        //     for (int j = 0; j < pIfLeaf->CutBest.klRoot->nSize; j++) {
+        //         int curr_node = *(int *)pIfLeaf->CutBest.klRoot->pArray[j];
+        //         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
+        //         curr_node_obj->fMark = 1;
+        //     }
+        // }
+        //output solution-2: set the second-end root to be same best cut
+        // if ( pIfLeaf->Type == 4 ) {
+        //     if (pIfLeaf->fMark == 0) {
+        //         // mark current KL Cut roots a used
+        //         for (int j = 0; j < pIfLeaf->CutBest.klRoot->nSize; j++) {
+        //             int curr_node = *(int *)pIfLeaf->CutBest.klRoot->pArray[j];
+        //             If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
+        //             curr_node_obj->fMark = pIfLeaf->Id;
+        //         }
+        //     } else {
+        //         int curr_node = pIfLeaf->fMark;
+        //         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
+        //         pIfLeaf->CutBest = curr_node_obj->CutBest;
+        //     }
+        // }
+        Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover ) );
+    }
 
     // set the level of the new node
     pNodeNew->Level = Abc_ObjLevelNew( pNodeNew );
@@ -613,129 +645,129 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
     return pNodeNew;
 }
 
-Abc_Obj_t * Abc_NodeFromIf_rec_orig( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover )
-{
-    Abc_Obj_t * pNodeNew;
-    If_Cut_t * pCutBest;
-    If_Obj_t * pIfLeaf;
-    int i;
-    // return if the result if known
-    pNodeNew = (Abc_Obj_t *)If_ObjCopy( pIfObj );
-    if ( pNodeNew )
-        return pNodeNew;
-    assert( pIfObj->Type == IF_AND );
-    // get the parameters of the best cut
-    pCutBest = If_ObjCutBest( pIfObj );
-
-    if ( pIfMan->pPars->fUserSesLib )
-    {
-        // create the subgraph composed of Abc_Obj_t nodes based on the given cut
-        Abc_Obj_t * pFanins[IF_MAX_FUNC_LUTSIZE];
-        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-            pFanins[i] = Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
-        pNodeNew = Abc_ExactBuildNode( If_CutTruthW(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), If_CutArrTimeProfile(pIfMan, pCutBest), pFanins, pNtkNew );
-        If_ObjSetCopy( pIfObj, pNodeNew );
-        return pNodeNew;
-    }
-    // create a new node
-    pNodeNew = Abc_NtkCreateNode( pNtkNew );
-//    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
-    if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm &&
-         !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserLut2D && !pIfMan->pPars->fUserRecLib &&
-         !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
-        If_CutRotatePins( pIfMan, pCutBest );
-    if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
-    {
-        If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
-            Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
-    }
-    else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
-    {
-        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-            Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
-    }
-    else
-    {
-        If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
-            Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
-    }
-    // set the level of the new node
-    pNodeNew->Level = Abc_ObjLevelNew( pNodeNew );
-
-    // derive the function of this node
-    if ( pIfMan->pPars->fTruth )
-    {
-        if ( pIfMan->pPars->fUseBdds )
-        {
-            // transform truth table into the BDD
-#ifdef ABC_USE_CUDD
-            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref((DdNode *)pNodeNew->pData);
-#endif
-        }
-        else if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
-        {
-            // transform truth table into the BDD
-#ifdef ABC_USE_CUDD
-            pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData);
-#endif
-        }
-        else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 )
-        {
-            // transform truth table into the SOP
-            int RetValue = Kit_TruthIsop( If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), vCover, 1 );
-            assert( RetValue == 0 || RetValue == 1 );
-            // check the case of constant cover
-            if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
-            {
-                assert( RetValue == 0 );
-                pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), NULL );
-                pNodeNew = (Vec_IntSize(vCover) == 0) ? Abc_NtkCreateNodeConst0(pNtkNew) : Abc_NtkCreateNodeConst1(pNtkNew);
-            }
-            else
-            {
-                // derive the AIG for that tree
-                pNodeNew->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), vCover );
-                if ( RetValue )
-                    Abc_SopComplement( (char *)pNodeNew->pData );
-            }
-        }
-        else if ( pIfMan->pPars->fDelayOpt )
-            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 0 );
-        else if ( pIfMan->pPars->fDsdBalance )
-            pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 1 );
-        else if ( pIfMan->pPars->fUserRecLib )
-        {
-            extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
-            pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj );
-        }
-        else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
-        {
-            extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
-            Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew );
-        }
-        else
-        {
-            extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
-            word * pTruth = If_CutTruthW(pIfMan, pCutBest);
-            if ( pIfMan->pPars->fUseTtPerm )
-                for ( i = 0; i < (int)pCutBest->nLeaves; i++ )
-                    if ( If_CutLeafBit(pCutBest, i) )
-                        Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), i );
-            pNodeNew->pData = Kit_TruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, (unsigned *)pTruth, If_CutLeaveNum(pCutBest), vCover );
-//            if ( pIfMan->pPars->fUseBat )
-//                Bat_ManFuncPrintCell( *pTruth );
-        }
-        // complement the node if the cut was complemented
-        if ( pCutBest->fCompl && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDsdBalance )
-            Abc_NodeComplement( pNodeNew );
-    }
-    else
-    {
-        pNodeNew->pData = Abc_NodeIfToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pIfObj );
-    }
-    If_ObjSetCopy( pIfObj, pNodeNew );
-    return pNodeNew;
-}
+// Abc_Obj_t * Abc_NodeFromIf_rec_orig( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t * pIfObj, Vec_Int_t * vCover )
+// {
+//     Abc_Obj_t * pNodeNew;
+//     If_Cut_t * pCutBest;
+//     If_Obj_t * pIfLeaf;
+//     int i;
+//     // return if the result if known
+//     pNodeNew = (Abc_Obj_t *)If_ObjCopy( pIfObj );
+//     if ( pNodeNew )
+//         return pNodeNew;
+//     assert( pIfObj->Type == IF_AND );
+//     // get the parameters of the best cut
+//     pCutBest = If_ObjCutBest( pIfObj );
+//
+//     if ( pIfMan->pPars->fUserSesLib )
+//     {
+//         // create the subgraph composed of Abc_Obj_t nodes based on the given cut
+//         Abc_Obj_t * pFanins[IF_MAX_FUNC_LUTSIZE];
+//         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+//             pFanins[i] = Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
+//         pNodeNew = Abc_ExactBuildNode( If_CutTruthW(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), If_CutArrTimeProfile(pIfMan, pCutBest), pFanins, pNtkNew );
+//         If_ObjSetCopy( pIfObj, pNodeNew );
+//         return pNodeNew;
+//     }
+//     // create a new node
+//     pNodeNew = Abc_NtkCreateNode( pNtkNew );
+// //    if ( pIfMan->pPars->pLutLib && pIfMan->pPars->pLutLib->fVarPinDelays )
+//     if ( !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDelayOptLut && !pIfMan->pPars->fDsdBalance && !pIfMan->pPars->fUseTtPerm &&
+//          !pIfMan->pPars->pLutStruct && !pIfMan->pPars->fUserLutDec && !pIfMan->pPars->fUserLut2D && !pIfMan->pPars->fUserRecLib &&
+//          !pIfMan->pPars->fUserSesLib && !pIfMan->pPars->nGateSize )
+//         If_CutRotatePins( pIfMan, pCutBest );
+//     if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
+//     {
+//         If_CutForEachLeafReverse( pIfMan, pCutBest, pIfLeaf, i )
+//             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+//     }
+//     else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
+//     {
+//         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+//             Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover);
+//     }
+//     else
+//     {
+//         If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i )
+//             Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover) );
+//     }
+//     // set the level of the new node
+//     pNodeNew->Level = Abc_ObjLevelNew( pNodeNew );
+//
+//     // derive the function of this node
+//     if ( pIfMan->pPars->fTruth )
+//     {
+//         if ( pIfMan->pPars->fUseBdds )
+//         {
+//             // transform truth table into the BDD
+// #ifdef ABC_USE_CUDD
+//             pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 0 );  Cudd_Ref((DdNode *)pNodeNew->pData);
+// #endif
+//         }
+//         else if ( pIfMan->pPars->fUseCnfs || pIfMan->pPars->fUseMv )
+//         {
+//             // transform truth table into the BDD
+// #ifdef ABC_USE_CUDD
+//             pNodeNew->pData = Kit_TruthToBdd( (DdManager *)pNtkNew->pManFunc, If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), 1 );  Cudd_Ref((DdNode *)pNodeNew->pData);
+// #endif
+//         }
+//         else if ( pIfMan->pPars->fUseSops || pIfMan->pPars->nGateSize > 0 )
+//         {
+//             // transform truth table into the SOP
+//             int RetValue = Kit_TruthIsop( If_CutTruth(pIfMan, pCutBest), If_CutLeaveNum(pCutBest), vCover, 1 );
+//             assert( RetValue == 0 || RetValue == 1 );
+//             // check the case of constant cover
+//             if ( Vec_IntSize(vCover) == 0 || (Vec_IntSize(vCover) == 1 && Vec_IntEntry(vCover,0) == 0) )
+//             {
+//                 assert( RetValue == 0 );
+//                 pNodeNew->pData = Abc_SopCreateAnd( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), NULL );
+//                 pNodeNew = (Vec_IntSize(vCover) == 0) ? Abc_NtkCreateNodeConst0(pNtkNew) : Abc_NtkCreateNodeConst1(pNtkNew);
+//             }
+//             else
+//             {
+//                 // derive the AIG for that tree
+//                 pNodeNew->pData = Abc_SopCreateFromIsop( (Mem_Flex_t *)pNtkNew->pManFunc, If_CutLeaveNum(pCutBest), vCover );
+//                 if ( RetValue )
+//                     Abc_SopComplement( (char *)pNodeNew->pData );
+//             }
+//         }
+//         else if ( pIfMan->pPars->fDelayOpt )
+//             pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 0 );
+//         else if ( pIfMan->pPars->fDsdBalance )
+//             pNodeNew->pData = Abc_NodeBuildFromMini( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, 1 );
+//         else if ( pIfMan->pPars->fUserRecLib )
+//         {
+//             extern Hop_Obj_t * Abc_RecToHop3( Hop_Man_t * pMan, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj );
+//             pNodeNew->pData = Abc_RecToHop3( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pCutBest, pIfObj );
+//         }
+//         else if ( pIfMan->pPars->fUserLutDec || pIfMan->pPars->fUserLut2D || pIfMan->pPars->fDeriveLuts )
+//         {
+//             extern void Abc_DecRecordToHop( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Cut_t * pCut, If_Obj_t * pIfObj, Vec_Int_t * vMemory, Abc_Obj_t * pNodeTop );
+//             Abc_DecRecordToHop( pNtkNew, pIfMan, pCutBest, pIfObj, vCover, pNodeNew );
+//         }
+//         else
+//         {
+//             extern Hop_Obj_t * Kit_TruthToHop( Hop_Man_t * pMan, unsigned * pTruth, int nVars, Vec_Int_t * vMemory );
+//             word * pTruth = If_CutTruthW(pIfMan, pCutBest);
+//             if ( pIfMan->pPars->fUseTtPerm )
+//                 for ( i = 0; i < (int)pCutBest->nLeaves; i++ )
+//                     if ( If_CutLeafBit(pCutBest, i) )
+//                         Abc_TtFlip( pTruth, Abc_TtWordNum(pCutBest->nLeaves), i );
+//             pNodeNew->pData = Kit_TruthToHop( (Hop_Man_t *)pNtkNew->pManFunc, (unsigned *)pTruth, If_CutLeaveNum(pCutBest), vCover );
+// //            if ( pIfMan->pPars->fUseBat )
+// //                Bat_ManFuncPrintCell( *pTruth );
+//         }
+//         // complement the node if the cut was complemented
+//         if ( pCutBest->fCompl && !pIfMan->pPars->fDelayOpt && !pIfMan->pPars->fDsdBalance )
+//             Abc_NodeComplement( pNodeNew );
+//     }
+//     else
+//     {
+//         pNodeNew->pData = Abc_NodeIfToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pIfObj );
+//     }
+//     If_ObjSetCopy( pIfObj, pNodeNew );
+//     return pNodeNew;
+// }
 
 /**Function*************************************************************
 

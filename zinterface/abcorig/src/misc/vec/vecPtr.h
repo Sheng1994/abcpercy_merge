@@ -1241,6 +1241,17 @@ static inline void Vec_PtrRemoveLast( Vec_Ptr_t * p )
 }
 
 
+inline int Vec_Ismemeber(Vec_Ptr_t *vNodesInCut,int numtemp) {
+    for (int j = 0; j < vNodesInCut->nSize; j++) {
+        int nodeindex = *(int *)vNodesInCut->pArray[j];
+        if (nodeindex == numtemp) {
+            return 1;
+            break;
+        }
+    }
+    return 0;
+}
+
 ABC_NAMESPACE_HEADER_END
 
 #endif

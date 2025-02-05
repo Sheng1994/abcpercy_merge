@@ -142,6 +142,7 @@ struct Abc_Obj_t_     // 48/72 bytes (32-bits/64-bits)
     unsigned          Level   : 20;  // the level of the node
     Vec_Int_t         vFanins;       // the array of fanins
     Vec_Int_t         vFanouts;      // the array of fanouts
+    Vec_Ptr_t *       vCoRoots;      // the array of KL CoRoots
     union { void *    pData;         // the network specific data
       int             iData; };      // (SOP, BDD, gate, equiv class, etc)
     union { void *    pTemp;         // temporary store for user's data

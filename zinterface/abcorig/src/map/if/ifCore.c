@@ -170,58 +170,75 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // Test-4: extend based on recursive
     // Only Test-4 works well
     If_NearCutEnuRec(p, 6, 3);
-    printf("\nFinal acceptable extened results:\n");
-    If_ManForEachNode(p, pObj, i) {
-        printf("Extended Cut for node %d: ",i);
-        for (int k = 0; k < pObj->vBestKLCut->nSize; k++) {
-            int *pNum = (int *)Vec_PtrEntry(pObj->vBestKLCut, k);
-            printf("%d ", *pNum);
-        }
-        printf("\n");
-    }
 
     // percy exact synthesis mapping
     int fail_count = 0;
     If_ManForEachNode( p, pObj, i ) {
-        // for (int j = 0; j < Vec_PtrSize(pObj->vKLCut); j++) {
-        //     Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-        //     printf("Extended Cut for node %d: ",i);
-        //     for (int k = 0; k < Vec_PtrSize(vRow); k++) {
-        //         int *pNum = (int *)Vec_PtrEntry(vRow, k);
-        //         printf("%d ", *pNum);
-        //     }
-        //     //printf("\n");
-        // }
-
-        // Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut;
+        /***************************KL Cut Mapping*******************************/
         Vec_Ptr_t *vNodesInCut = pObj->vBestKLCut;
+        printf("\nExtended Cut for node %d: ",i);
+        for (int k = 0; k < Vec_PtrSize(vNodesInCut); k++) {
+            int *pNum = (int *)Vec_PtrEntry(vNodesInCut, k);
+            printf("%d ", *pNum);
+        }
         int faninnum = FaninCount(p, vNodesInCut)->nSize;
+        Vec_PtrSort(pObj->vBestKLFanins, NULL);
         printf("\nCuts with %d fanins: ", faninnum);
+        for (int j = 0; j < Vec_PtrSize(pObj->vBestKLFanins); j++) {
+            int *pNum = (int *)Vec_PtrEntry(pObj->vBestKLFanins, j);
+            printf("%d ", *pNum);
+        }
         int fanoutnum = FanoutCount(p, vNodesInCut)->nSize;
         printf("\nCuts with %d fanouts: ", fanoutnum);
-
-	    If_Cut_t * pCut = &pObj->CutBest;
-        int nleaves = pCut->nLeaves;
-        printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
-        for (int j = 0; j < Vec_PtrSize(vNodesInCut); j++) {
-            int *pNum = (int *)Vec_PtrEntry(vNodesInCut, j);
+        for (int j = 0; j < Vec_PtrSize(pObj->vBestKLFanouts); j++) {
+            int *pNum = (int *)Vec_PtrEntry(pObj->vBestKLFanouts, j);
             printf("%d ", *pNum);
         }
         printf("\n");
-        // each node contain fanin, fanout
-        // each fanin/fanout can contain invertor
-        // If_CutDAG(p, pCut);
-        // printf("\n%d leaves in cut, ", nleaves);
-        // int status = percy_map(pCut);
-        // if (status==1) {
-        //     printf("Percy Success!\n\n");
-        // }
-        // else {
-        //     printf("Percy Failed!\n\n");
-        //     fail_count = fail_count + 1;
-        // }
+        /***************************Normal LUT Mapping*******************************/
+     //    Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut
+     //    If_Cut_t * pCut = &pObj->CutBest;
+     //    int nleaves = pCut->nLeaves;
+     //    printf("\nNodes with type %d in cut %d: ",pObj->Type, pObj->Id);
+     //    for (int j = 0; j < Vec_PtrSize(vNodesInCut); j++) {
+     //        int *pNum = (int *)Vec_PtrEntry(vNodesInCut, j);
+     //        printf("%d ", *pNum);
+     //    }
+     //    printf("\n");
+     //    // each node contain fanin, fanout
+     //    // each fanin/fanout can contain invertor
+     //    If_CutDAG(p, pCut);
+     //    printf("\n%d leaves in cut, ", nleaves);
+     //    int status = percy_map(pCut);
+     //    if (status==1) {
+     //        printf("Percy Success!\n\n");
+     //    }
+     //    else {
+     //        printf("Percy Failed!\n\n");
+     //        fail_count = fail_count + 1;
+     //    }
     }
     printf("Failure ratio: %d/%d\n", fail_count, i);
+
+    /***********************user define KL data transform************************/
+    // transform the KL cut data to standard data format
+    If_ManForEachNode( p, pObj, i ) {
+        // update the CutBest
+        pObj->CutBest.Area = pObj->KLArea;
+        pObj->CutBest.Delay = pObj->KLDelay;
+        pObj->CutBest.Edge = pObj->KLEdge;
+        pObj->CutBest.Power = pObj->KLPower;
+        Vec_PtrSort(pObj->vBestKLCut, NULL);
+        pObj->CutBest.vNodesInCut = pObj->vBestKLCut;
+        Vec_PtrSort(pObj->vBestKLFanouts, NULL);
+        pObj->CutBest.klRoot = pObj->vBestKLFanouts;
+        Vec_PtrSort(pObj->vBestKLFanins, NULL);
+        pObj->CutBest.nLeaves = pObj->KLLeaves;
+        for (int k = 0; k < pObj->KLLeaves; k++) {
+            int fanin = *(int *)Vec_PtrEntry(pObj->vBestKLFanins, k);
+            pObj->CutBest.pLeaves[k] = fanin;
+        }
+    }
 
     if ( p->pPars->fVerbose )
     {
