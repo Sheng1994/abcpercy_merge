@@ -174,7 +174,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // percy exact synthesis mapping
     int fail_count = 0;
     If_ManForEachNode( p, pObj, i ) {
-        /***************************KL Cut Mapping*******************************/
+        /***************************KL Cut Print*******************************/
         Vec_Ptr_t *vNodesInCut = pObj->vBestKLCut;
         printf("\nExtended Cut for node %d: ",i);
         for (int k = 0; k < Vec_PtrSize(vNodesInCut); k++) {
@@ -195,7 +195,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
             printf("%d ", *pNum);
         }
         printf("\n");
-        /***************************Normal LUT Mapping*******************************/
+        /***************************Normal LUT Mapping***************************/
      //    Vec_Ptr_t *vNodesInCut = pObj->CutBest.vNodesInCut
      //    If_Cut_t * pCut = &pObj->CutBest;
      //    int nleaves = pCut->nLeaves;

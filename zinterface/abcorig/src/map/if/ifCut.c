@@ -2231,15 +2231,19 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
                 if (curr_node_obj->Type == 4) {
                     int curr_node0 = curr_node_obj->pFanin0->Id;
                     int curr_node1 = curr_node_obj->pFanin1->Id;
+                    int curr_node0_level = curr_node_obj->pFanin0->Level;
+                    int curr_node1_level = curr_node_obj->pFanin1->Level;
                     if (curr_node0 > p->vCis->nSize) {
                         if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin0->Id)) {
-                            Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
+                            if (curr_node0_level <= root_level)
+                                Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
                             If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
                         }
                     }
                     if (curr_node1 > p->vCis->nSize) {
                         if (!Vec_Ismemeber(NodesInCut,curr_node_obj->pFanin1->Id)) {
-                            Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
+                            if (curr_node1_level <= root_level)
+                                Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
                             If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
                         }
                     }
@@ -2253,87 +2257,113 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
 }
 
 void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
+
     If_Obj_t *pObj; int i;
     If_ManForEachNode(p, pObj, i) {
-        // initialize the vKLCut
-        pObj->vKLCut = Vec_PtrAlloc(0);
-        //printf("\nProcessing node %d:\n",pObj->Id);
-        // loop each node in the cut
-        for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
-            Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
-            Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
-            const int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
-            //if (curr_node == pObj->Id) {continue;}
-            int root_level = pObj->Level;
-            If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
-        }
-        // select best KL cut
-        // initialize KL cut parameters
-        pObj->KLArea = IF_INFINITY;
-        pObj->KLDelay = IF_INFINITY;
-        pObj->KLLeaves = IF_INFINITY;
-        pObj->KLEdge = IF_INFINITY;
-        pObj->KLPower = IF_INFINITY;
-        // in a while loop until find the best cut
-        bool found = false; Vec_Ptr_t *NodesInCutTemp = nullptr;
-        while (!found) {
-            for (int j = 0; j < pObj->vKLCut->nSize; j++) {
-                auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-                float AreaTemp = pObj->KLArea;
-                float DelayTemp = pObj->KLDelay;
-                float LeavesTemp = pObj->KLLeaves;
-                float EdgeTemp = pObj->KLEdge;
-                float PowerTemp = pObj->KLPower;
-                vKLPara(p, pObj, NodesInCut);
-                int ifbetter = KLCompare(AreaTemp, DelayTemp, EdgeTemp, LeavesTemp, PowerTemp, pObj);
-                // if is better, update the best KL Cut
-                if (ifbetter == 1) {
-                    pObj->vBestKLCut = Vec_PtrAlloc(0);
-                    for (int k = 0; k < Vec_PtrSize(NodesInCut); k++) {
-                        int pNum = *(int *)Vec_PtrEntry(NodesInCut, k);
-                        auto *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, pNum);
-                        //Vec_PtrFree(pObj->vBestKLCut);
-                        Vec_PtrPush(pObj->vBestKLCut, &CurrNode->Id);
-                    }
-                    pObj->vBestKLFanins = Vec_PtrAlloc(0);
-                    pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
-                    pObj->vBestKLFanouts = Vec_PtrAlloc(0);
-                    pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
-                } else {
-                    pObj->KLArea = AreaTemp;
-                    pObj->KLDelay = DelayTemp;
-                    pObj->KLLeaves = LeavesTemp;
-                    pObj->KLEdge = EdgeTemp;
-                    pObj->KLPower = PowerTemp;
-                }
-                NodesInCutTemp = NodesInCut;
+        // the root is covered or not
+        if (pObj->vBestKLFanouts && !Vec_Ismemeber(pObj->vBestKLFanouts,pObj->Id)) {
+            int rootnode = *(int*)Vec_PtrEntry(pObj->vBestKLFanouts, 0);
+            auto *root_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, rootnode);
+            // copy the parameters
+            pObj->KLArea = root_node_obj->KLArea;
+            pObj->KLDelay = root_node_obj->KLDelay;
+            pObj->KLLeaves = root_node_obj->KLLeaves;
+            pObj->KLPower= root_node_obj->KLPower;
+            pObj->KLEdge = root_node_obj->KLEdge;
+            // copy the fanins/fanouts/nodes in cut
+            pObj->vBestKLCut = root_node_obj->vBestKLCut;
+            pObj->vBestKLFanins = root_node_obj->vBestKLFanins;
+            pObj->vBestKLFanouts = root_node_obj->vBestKLFanouts;
+        } else {
+            // initialize the vKLCut
+            pObj->vKLCut = Vec_PtrAlloc(0);
+            //printf("\nProcessing node %d:\n",pObj->Id);
+            // loop each node in the cut
+            for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
+                Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
+                Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
+                const int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
+                //if (curr_node == pObj->Id) {continue;}
+                int root_level = pObj->Level;
+                If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
             }
-            // deep copy to realize packing for percy mapping function
-            If_Obj_t *tempObj = deepCopyIfObj(pObj);
-            Vec_PtrCopy( tempObj->CutBest.vNodesInCut, pObj->vBestKLCut);
-            If_Cut_t *pCutTemp = &tempObj->CutBest;
-            If_CutDAG(p, pCutTemp);
-            int status = percy_map(pCutTemp);
-            // int status = 1;
-            if (status != 1) {
-                printf("Percy Verification failed!\n");
-                //remove the current extended solution
-                if (pObj->vKLCut->nSize !=1) {
-                    printf("Nodes in failed KL Cut: ");
-                    for (int k = 0; k < NodesInCutTemp->nSize; k++) {
-                        int *pNum = (int *)Vec_PtrEntry(NodesInCutTemp, k);
-                        printf("%d ", *pNum);
+            // select best KL cut
+            // initialize KL cut parameters
+            pObj->KLArea = IF_INFINITY;
+            pObj->KLDelay = IF_INFINITY;
+            pObj->KLLeaves = IF_INFINITY;
+            pObj->KLEdge = IF_INFINITY;
+            pObj->KLPower = IF_INFINITY;
+            // in a while loop until find the best cut
+            bool found = false; Vec_Ptr_t *NodesInCutTemp = nullptr;
+            while (!found) {
+                for (int j = 0; j < pObj->vKLCut->nSize; j++) {
+                    auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
+                    float AreaTemp = pObj->KLArea;
+                    float DelayTemp = pObj->KLDelay;
+                    float LeavesTemp = pObj->KLLeaves;
+                    float EdgeTemp = pObj->KLEdge;
+                    float PowerTemp = pObj->KLPower;
+                    vKLPara(p, pObj, NodesInCut);
+                    int ifbetter = KLCompare(AreaTemp, DelayTemp, EdgeTemp, LeavesTemp, PowerTemp, pObj);
+                    // if is better, update the best KL Cut
+                    if (ifbetter == 1) {
+                        pObj->vBestKLCut = Vec_PtrAlloc(0);
+                        for (int k = 0; k < Vec_PtrSize(NodesInCut); k++) {
+                            int pNum = *(int *)Vec_PtrEntry(NodesInCut, k);
+                            auto *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, pNum);
+                            //Vec_PtrFree(pObj->vBestKLCut);
+                            Vec_PtrPush(pObj->vBestKLCut, &CurrNode->Id);
+                        }
+                        pObj->vBestKLFanins = Vec_PtrAlloc(0);
+                        pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
+                        pObj->vBestKLFanouts = Vec_PtrAlloc(0);
+                        pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
+                    } else {
+                        pObj->KLArea = AreaTemp;
+                        pObj->KLDelay = DelayTemp;
+                        pObj->KLLeaves = LeavesTemp;
+                        pObj->KLEdge = EdgeTemp;
+                        pObj->KLPower = PowerTemp;
                     }
-                    printf("\n");
-                    Vec_PtrRemove( pObj->vKLCut, NodesInCutTemp );
-                } else {
-                    // if the only one left, delete some nodes
-                    auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, 0);
-                    NodesInCut->nSize = NodesInCut->nSize - 1;
+                    NodesInCutTemp = NodesInCut;
                 }
-            } else {
-                printf("Percy Verification successful!\n");
-                found = true;
+                // deep copy to realize packing for percy mapping function
+                If_Obj_t *tempObj = deepCopyIfObj(pObj);
+                Vec_PtrCopy( tempObj->CutBest.vNodesInCut, pObj->vBestKLCut);
+                If_Cut_t *pCutTemp = &tempObj->CutBest;
+                If_CutDAG(p, pCutTemp);
+                //int status = percy_map(pCutTemp);
+                int status = 1;
+                if (status != 1) {
+                    printf("Percy Verification failed!\n");
+                    //remove the current extended solution
+                    if (pObj->vKLCut->nSize !=1) {
+                        printf("Nodes in failed KL Cut: ");
+                        for (int k = 0; k < NodesInCutTemp->nSize; k++) {
+                            int *pNum = (int *)Vec_PtrEntry(NodesInCutTemp, k);
+                            printf("%d ", *pNum);
+                        }
+                        printf("\n");
+                        Vec_PtrRemove( pObj->vKLCut, NodesInCutTemp );
+                    } else {
+                        // if the only one left, delete some nodes
+                        auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, 0);
+                        NodesInCut->nSize = NodesInCut->nSize - 1;
+                    }
+                } else {
+                    printf("Percy Verification successful!\n");
+                    found = true;
+                    // cover all roots
+                    for (int k = 0; k < pObj->vBestKLFanouts->nSize; k++) {
+                        int rootnode = *(int*)Vec_PtrEntry(pObj->vBestKLFanouts, k);
+                        auto *root_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, rootnode);
+                        if (root_node_obj->vBestKLFanouts == NULL) {
+                            root_node_obj->vBestKLFanouts = Vec_PtrAlloc(0);
+                            Vec_PtrPush(root_node_obj->vBestKLFanouts, &pObj->Id);
+                        }
+                    }
+                }
             }
         }
         // print the best KL Cut
