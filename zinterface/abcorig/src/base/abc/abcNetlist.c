@@ -183,6 +183,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
     // duplicate all nodes
     Abc_NtkForEachNode( pNtk, pObj, i )
         Abc_NtkDupObj(pNtkNew, pObj, 0);
+
     // first add the nets to the CO drivers
     Abc_NtkForEachCo( pNtk, pObj, i )
     {
@@ -235,6 +236,7 @@ Abc_Ntk_t * Abc_NtkLogicToNetlist( Abc_Ntk_t * pNtk )
         pNtkNew->pExdc = Abc_NtkToNetlist( pNtk->pExdc );
     if ( !Abc_NtkCheck( pNtkNew ) )
         fprintf( stdout, "Abc_NtkLogicToNetlist(): Network check has failed.\n" );
+
     return pNtkNew;
 }
 

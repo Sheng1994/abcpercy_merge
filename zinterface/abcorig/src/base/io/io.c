@@ -2363,6 +2363,7 @@ usage:
 int IoCommandWriteBlif( Abc_Frame_t * pAbc, int argc, char **argv )
 {
     char * pFileName;
+    char * pFileNameMC;
     char * pLutStruct = NULL;
     int c, fSpecial = 0;
     int fUseHie = 0;

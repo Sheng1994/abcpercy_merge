@@ -83,6 +83,8 @@ void Io_WriteBlifLogic( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches )
 ***********************************************************************/
 void Io_WriteBlif( Abc_Ntk_t * pNtk, char * FileName, int fWriteLatches, int fBb2Wb, int fSeq )
 {
+
+
     FILE * pFile;
     Abc_Ntk_t * pNtkTemp;
     int i;
@@ -467,6 +469,10 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
 
     LineLength  = 6;
     NameCounter = 0;
+
+    // sort the fanin
+    Vec_IntSort(&pNode->vFanins, NULL);
+
     Abc_ObjForEachFanin( pNode, pNet, i )
     {
         // get the fanin name
@@ -497,6 +503,19 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
         NameCounter = 0;
     }
     fprintf( pFile, " %s", pName );
+
+    // output the coRoot
+    char combined[10];
+    Vec_IntSort(&pNode->vCoRoots, NULL);
+    if (pNode->vCoRoots.nSize > 1) {
+        for (int i1 = 0; i1 < pNode->vCoRoots.nSize; i1++) {
+            int firstCoRoot = pNode->vCoRoots.pArray[i1];
+            char temp[20];
+            sprintf(temp, "%d", firstCoRoot);
+            strcat(combined, temp);
+        }
+        fprintf( pFile, " CR%s", combined );
+    }
 }
 
 /**Function*************************************************************

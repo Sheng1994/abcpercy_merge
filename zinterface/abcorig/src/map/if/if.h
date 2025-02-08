@@ -362,6 +362,7 @@ struct If_Obj_t_
     Vec_Ptr_t *        vKLCut;        // extended KL cut with node index
     Vec_Ptr_t *        vBestKLCut;    // extended Best KL cut with node index
     Vec_Ptr_t *        vBestKLFanins;  // extended Best KL cut fanins
+    Vec_Ptr_t *        vBestKLNonFanins;  // extended Best KL cut fanouts
     Vec_Ptr_t *        vBestKLFanouts;  // extended Best KL cut fanouts
     float              KLArea;        // area (or area-flow) of the cut
     float              KLEdge;        // the edge flow

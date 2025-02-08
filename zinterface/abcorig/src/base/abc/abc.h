@@ -140,9 +140,11 @@ struct Abc_Obj_t_     // 48/72 bytes (32-bits/64-bits)
     unsigned          fCompl0 :  1;  // complemented attribute of the first fanin in the AIG
     unsigned          fCompl1 :  1;  // complemented attribute of the second fanin in the AIG 
     unsigned          Level   : 20;  // the level of the node
+    bool              fMarker;       // the multiple function marker
     Vec_Int_t         vFanins;       // the array of fanins
     Vec_Int_t         vFanouts;      // the array of fanouts
-    Vec_Ptr_t *       vCoRoots;      // the array of KL CoRoots
+    Vec_Int_t         vCoFanins;      // the array of KL CoFanins
+    Vec_Int_t         vCoRoots;      // the array of KL CoRoots
     union { void *    pData;         // the network specific data
       int             iData; };      // (SOP, BDD, gate, equiv class, etc)
     union { void *    pTemp;         // temporary store for user's data
@@ -372,6 +374,7 @@ static inline int         Abc_ObjFaninId0( Abc_Obj_t * pObj )        { return pO
 static inline int         Abc_ObjFaninId1( Abc_Obj_t * pObj )        { return pObj->vFanins.pArray[1]; }
 static inline int         Abc_ObjFanoutEdgeNum( Abc_Obj_t * pObj, Abc_Obj_t * pFanout )  { assert( Abc_NtkHasAig(pObj->pNtk) );  if ( Abc_ObjFaninId0(pFanout) == pObj->Id ) return 0; if ( Abc_ObjFaninId1(pFanout) == pObj->Id ) return 1; assert( 0 ); return -1;  }
 static inline Abc_Obj_t * Abc_ObjFanout( Abc_Obj_t * pObj, int i )   { return (Abc_Obj_t *)pObj->pNtk->vObjs->pArray[ pObj->vFanouts.pArray[i] ];  }
+static inline Abc_Obj_t * Abc_ObjFanoutModi( Abc_Obj_t * pObj, int i )   { return (Abc_Obj_t *)pObj->pNtk->vObjs->pArray[ pObj->vCoRoots.pArray[i] ];  }
 static inline Abc_Obj_t * Abc_ObjFanout0( Abc_Obj_t * pObj )         { return (Abc_Obj_t *)pObj->pNtk->vObjs->pArray[ pObj->vFanouts.pArray[0] ];  }
 static inline Abc_Obj_t * Abc_ObjFanin( Abc_Obj_t * pObj, int i )    { return (Abc_Obj_t *)pObj->pNtk->vObjs->pArray[ pObj->vFanins.pArray[i] ];   }
 static inline Abc_Obj_t * Abc_ObjFanin0( Abc_Obj_t * pObj )          { return (Abc_Obj_t *)pObj->pNtk->vObjs->pArray[ pObj->vFanins.pArray[0] ];   }

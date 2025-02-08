@@ -319,6 +319,7 @@ Abc_Ntk_t * Io_Read( char * pFileName, Io_FileType_t FileType, int fCheck, int f
 ***********************************************************************/
 void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
 {
+
     Abc_Ntk_t * pNtkTemp, * pNtkCopy;
     // check if the current network is available
     if ( pNtk == NULL )
@@ -425,7 +426,65 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
     else
+        if (pNtk) {
+            Abc_Obj_t * pNode; int ii;
+            Abc_NtkForEachNode(pNtk, pNode, ii) {
+                printf( "The CoRoots of node %d before process is: \n", ii );
+                if (&pNode->vCoRoots != NULL) {
+                    for (int i = 0; i < pNode->vCoRoots.nSize; i++)
+                        printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
+                }
+                printf("\n");
+            }
+        }
+        /***********************generate pNtktemp here*******************************/
         pNtkTemp = Abc_NtkToNetlist( pNtk );
+        Abc_Obj_t * pNode; int ii;
+        Abc_NtkForEachNode(pNtkTemp, pNode, ii) {
+            printf( "The CoRoots of node %d after process is: \n", ii );
+            if (&pNode->vCoRoots != NULL) {
+                for (int i = 0; i < pNode->vCoRoots.nSize; i++)
+                    printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
+            }
+            printf("\n");
+        }
+        /***************************user define*************************************/
+        // modify the coroots nodes index
+        Abc_Obj_t * pNode1; Abc_Obj_t * pNode2; int i; int j;
+        // initialize the fMaker
+        // Abc_NtkForEachNode(pNtkTemp, pNode1, i) pNode1->fMarker = false;
+        Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
+            if (pNode1->fMarker == true) continue;
+            Vec_Int_t *coRootTemp = Vec_IntAlloc(0);
+            Vec_Int_t *coNodeTemp = Vec_IntAlloc(0);
+            Vec_IntSort(&pNode1->vCoRoots, NULL);
+            Abc_NtkForEachNode(pNtkTemp, pNode2, j) {
+                Vec_IntSort(&pNode2->vCoRoots, NULL);
+                if (pNode1->vCoRoots.nSize == pNode2->vCoRoots.nSize) {
+                    bool isequal = true;
+                    for (int k = 0; k < pNode1->vCoRoots.nSize; k++) {
+                        if (pNode1->vCoRoots.pArray[k] != pNode2->vCoRoots.pArray[k]) {
+                            isequal = false;
+                            break;
+                        }
+                    }
+                    if (isequal) {
+                        for (int l = 0; l < pNode2->vFanouts.nSize; l++) {
+                            Vec_IntPushUnique(coRootTemp, pNode2->vFanouts.pArray[l]);
+                        }
+                        Vec_IntPushUnique(coNodeTemp, pNode2->Id);
+                    }
+                    //printf( "Writing traditional SMV is available for AIGs only.\n" );
+                }
+            }
+            Vec_IntSort(coRootTemp, NULL);
+            for (i = 0; i < coNodeTemp->nSize; i++) {
+                int nodeTemp = coNodeTemp->pArray[i];
+                Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
+                currentNode->vCoRoots = *coRootTemp;
+                currentNode->fMarker = true;
+            }
+        }
 
     if ( pNtkTemp == NULL )
     {
@@ -437,6 +496,8 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
     {
         if ( !Abc_NtkHasSop(pNtkTemp) && !Abc_NtkHasMapping(pNtkTemp) )
             Abc_NtkToSop( pNtkTemp, -1, ABC_INFINITY );
+        /*******************************blif write***********************************/
+        // the information in the original pNtk lost some
         Io_WriteBlif( pNtkTemp, pFileName, 1, 0, 0 );
     }
     else if ( FileType == IO_FILE_BLIFMV )

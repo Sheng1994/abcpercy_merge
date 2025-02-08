@@ -366,6 +366,25 @@ Abc_Ntk_t * Abc_NtkFromIf( If_Man_t * pIfMan, Abc_Ntk_t * pNtk )
     Extra_ProgressBarStop( pProgress );
     Vec_IntFree( vCover );
 
+    /**********************************user define**********************************/
+    // If_Obj_t * pObj; If_Obj_t * pObk; int k;
+    // If_ManForEachNode(pIfMan, pObj, i) {
+    //     if (pObj->pCopy != NULL) {
+    //         Abc_Obj_t *pNode = (Abc_Obj_t *)pObj->pCopy;
+    //         printf("The roots of node %d: ", pNode->Id);
+    //         for (int j = 0; j < pNode->vCoRoots.nSize; j++) {
+    //             int rootId = pNode->vCoRoots.pArray[j];
+    //             If_ManForEachNode(pIfMan, pObk, k) {
+    //                 if (rootId == pObk->Id && pObk->pCopy != NULL) {
+    //                     pNode->vCoRoots.pArray[j] = ((Abc_Obj_t *)pObk->pCopy)->Id;
+    //                 }
+    //             }
+    //             printf("%d ", pNode->vCoRoots.pArray[j]);
+    //         }
+    //         printf("\n");
+    //     }
+    // }
+
     // remove the constant node if not used
     pNodeNew = (Abc_Obj_t *)If_ObjCopy( If_ManConst1(pIfMan) );
     if ( Abc_ObjFanoutNum(pNodeNew) == 0 && !Abc_ObjIsNone(pNodeNew) )
@@ -606,33 +625,6 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         If_CutRotatePins( pIfMan, pCutBest );
 
     If_CutForEachLeaf( pIfMan, pCutBest, pIfLeaf, i ) {
-        // output solution-1: if the leaf already exists in precious KL Cut, skip
-        //if (pIfLeaf->fMark == 1) {
-        //     continue;
-        // }
-        // if ( pIfLeaf->Type == 4 ) {
-        //     // mark current KL Cut roots a used
-        //     for (int j = 0; j < pIfLeaf->CutBest.klRoot->nSize; j++) {
-        //         int curr_node = *(int *)pIfLeaf->CutBest.klRoot->pArray[j];
-        //         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
-        //         curr_node_obj->fMark = 1;
-        //     }
-        // }
-        //output solution-2: set the second-end root to be same best cut
-        // if ( pIfLeaf->Type == 4 ) {
-        //     if (pIfLeaf->fMark == 0) {
-        //         // mark current KL Cut roots a used
-        //         for (int j = 0; j < pIfLeaf->CutBest.klRoot->nSize; j++) {
-        //             int curr_node = *(int *)pIfLeaf->CutBest.klRoot->pArray[j];
-        //             If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
-        //             curr_node_obj->fMark = pIfLeaf->Id;
-        //         }
-        //     } else {
-        //         int curr_node = pIfLeaf->fMark;
-        //         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(pIfMan->vObjs, curr_node);
-        //         pIfLeaf->CutBest = curr_node_obj->CutBest;
-        //     }
-        // }
         Abc_ObjAddFanin( pNodeNew, Abc_NodeFromIf_rec(pNtkNew, pIfMan, pIfLeaf, vCover ) );
     }
 
@@ -641,7 +633,26 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
 
     pNodeNew->pData = Abc_NodeIfToHop( (Hop_Man_t *)pNtkNew->pManFunc, pIfMan, pIfObj );
 
+    /**********************************user define*************************************/
+    // add the information of KL Cut fanin and fanout
+    for (int i = 0; i < pIfObj->vBestKLFanouts->nSize; i++) {
+        Vec_IntPushUnique(&pNodeNew->vCoRoots,*(int *)pIfObj->vBestKLFanouts->pArray[i]);
+    }
+    for (int i = 0; i < pIfObj->vBestKLFanins->nSize; i++) {
+        Vec_IntPushUnique(&pNodeNew->vCoFanins,*(int *)pIfObj->vBestKLFanins->pArray[i]);
+    }
+    for (int i = 0; i < pIfObj->vBestKLNonFanins->nSize; i++) {
+        Vec_IntPushUnique(&pNodeNew->vCoFanins,*(int *)pIfObj->vBestKLNonFanins->pArray[i]);
+    }
+
+    printf("The fanins of Current KL Cut %d: ", pNodeNew->Id);
+    for (int i = 0; i < pNodeNew->vFanins.nSize; i++) {
+        printf("%d ", (int *)pNodeNew->vFanins.pArray[i]);
+    }
+    printf("\n");
+
     If_ObjSetCopy( pIfObj, pNodeNew );
+
     return pNodeNew;
 }
 

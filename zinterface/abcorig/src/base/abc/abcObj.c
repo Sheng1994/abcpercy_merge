@@ -344,6 +344,7 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
     Abc_Obj_t * pObjNew;
     // create the new object
     pObjNew = Abc_NtkCreateObj( pNtkNew, (Abc_ObjType_t)pObj->Type );
+
     // transfer names of the terminal objects
     if ( fCopyName )
     {
@@ -398,6 +399,48 @@ Abc_Obj_t * Abc_NtkDupObj( Abc_Ntk_t * pNtkNew, Abc_Obj_t * pObj, int fCopyName 
 //    pObjNew->pEquiv = pObj->pEquiv;
     // remember the new node in the old node
     pObj->pCopy = pObjNew;
+
+    // modify the node index
+    int OrigId = pObj->Id;
+    int NewId = pObjNew->Id;
+    printf("\nThe ID match: %d %d \n", OrigId, NewId);
+
+    printf("The roots before modification: ");
+    for (int i = 0; i < pObj->vCoRoots.nSize; i++) {
+        int nodetemp = pObj->vCoRoots.pArray[i];
+        printf("%d ", nodetemp);
+    }
+    printf("\n");
+
+    for (int i = 0; i < pObj->vCoRoots.nSize; i++) {
+        int nodetemp = pObj->vCoRoots.pArray[i];
+        if ( nodetemp == OrigId )
+            pObj->vCoRoots.pArray[i] = NewId;
+    }
+
+    // int nodediff = NewId - OrigId;
+    // for (int i = 0; i < pObj->vCoRoots.nSize; i++) {
+    //     pObj->vCoRoots.pArray[i] = pObj->vCoRoots.pArray[i] + nodediff;
+    // }
+
+    printf("The roots after modification: ");
+    for (int i = 0; i < pObj->vCoRoots.nSize; i++) {
+        int nodetemp = pObj->vCoRoots.pArray[i];
+        printf("%d ", nodetemp);
+    }
+    printf("\n");
+
+    /***************************user define*******************************/
+    // add KL Cut Fanin Fanout information
+    pObjNew->vCoFanins = pObj->vCoFanins;
+    pObjNew->vCoRoots = pObj->vCoRoots;
+    // for (int i = 0; i < pObj->vCoFanins.nSize; i++) {
+    //     Vec_IntPush(&pObjNew->vCoFanins, pObj->vCoFanins.pArray[i] + pObjNew->pNtk->nObjCounts[6]);
+    // }
+    // for (int i = 0; i < pObj->vCoRoots.nSize; i++) {
+    //     Vec_IntPush(&pObjNew->vCoRoots, pObj->vCoRoots.pArray[i] + pObjNew->pNtk->nObjCounts[6]);
+    // }
+
     return pObjNew;
 }
 

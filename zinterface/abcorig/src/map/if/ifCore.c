@@ -233,11 +233,20 @@ int If_ManPerformMappingComb( If_Man_t * p )
         Vec_PtrSort(pObj->vBestKLFanouts, NULL);
         pObj->CutBest.klRoot = pObj->vBestKLFanouts;
         Vec_PtrSort(pObj->vBestKLFanins, NULL);
-        pObj->CutBest.nLeaves = pObj->KLLeaves;
-        for (int k = 0; k < pObj->KLLeaves; k++) {
-            int fanin = *(int *)Vec_PtrEntry(pObj->vBestKLFanins, k);
-            pObj->CutBest.pLeaves[k] = fanin;
+        // devide the leaves for different roots
+        If_ManLeafDev(p, pObj);
+        pObj->CutBest.nLeaves = pObj->vBestKLFanins->nSize;
+        printf("The leaves for current node %d: ", pObj->Id);
+        for (int j = 0; j < pObj->vBestKLFanins->nSize; j++) {
+            pObj->CutBest.pLeaves[j] = *(int *)pObj->vBestKLFanins->pArray[j];
+            printf("%d ", *(int *)pObj->vBestKLFanins->pArray[j]);
         }
+        printf("\n");
+        printf("The illegal leaves for current node %d: ", pObj->Id);
+        for (int j = 0; j < pObj->vBestKLNonFanins->nSize; j++) {
+            printf("%d ", *(int *)pObj->vBestKLNonFanins->pArray[j]);
+        }
+        printf("\n");
     }
 
     if ( p->pPars->fVerbose )
@@ -275,6 +284,11 @@ int If_ManPerformMappingComb( If_Man_t * p )
 */
     p->pPars->FinalDelay = p->RequiredGlo;
     p->pPars->FinalArea  = p->AreaGlo;
+
+    // /******************************user define*****************************/
+    p->pPars->nLutSize = 6;
+
+
     return 1;
 }
 
