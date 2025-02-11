@@ -369,6 +369,7 @@ struct If_Obj_t_
     float              KLPower;       // the power flow
     float              KLDelay;       // delay of the cut
     int                KLLeaves;      // number of leaves
+    float              KLMerge;       // overlap of Fanins
 
     If_Obj_t *         pEquiv;        // the choice node
     float              EstRefs;       // estimated reference counter
@@ -713,6 +714,7 @@ extern void *          If_ManDeriveGiaFromCells( void * p );
 extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );
 extern void            If_ManCleanMarkV( If_Man_t * p );
+extern void            If_ManCleanMarkM( If_Man_t * p );
 extern float           If_ManScanMapping( If_Man_t * p );
 extern float           If_ManScanMappingDirect( If_Man_t * p );
 extern float           If_ManScanMappingSeq( If_Man_t * p );

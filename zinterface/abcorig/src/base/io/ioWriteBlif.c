@@ -515,6 +515,8 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
             strcat(combined, temp);
         }
         fprintf( pFile, " CR%s", combined );
+    } else if (pNode->vFanins.nSize <=3) {
+        fprintf( pFile, " CR3" );
     }
 }
 

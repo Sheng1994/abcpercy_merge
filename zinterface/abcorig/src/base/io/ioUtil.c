@@ -426,28 +426,28 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
     else
-        if (pNtk) {
-            Abc_Obj_t * pNode; int ii;
-            Abc_NtkForEachNode(pNtk, pNode, ii) {
-                printf( "The CoRoots of node %d before process is: \n", ii );
-                if (&pNode->vCoRoots != NULL) {
-                    for (int i = 0; i < pNode->vCoRoots.nSize; i++)
-                        printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
-                }
-                printf("\n");
-            }
-        }
+        // if (pNtk) {
+        //     Abc_Obj_t * pNode; int ii;
+        //     Abc_NtkForEachNode(pNtk, pNode, ii) {
+        //         printf( "The CoRoots of node %d before process is: \n", ii );
+        //         if (&pNode->vCoRoots != NULL) {
+        //             for (int i = 0; i < pNode->vCoRoots.nSize; i++)
+        //                 printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
+        //         }
+        //         printf("\n");
+        //     }
+        // }
         /***********************generate pNtktemp here*******************************/
         pNtkTemp = Abc_NtkToNetlist( pNtk );
-        Abc_Obj_t * pNode; int ii;
-        Abc_NtkForEachNode(pNtkTemp, pNode, ii) {
-            printf( "The CoRoots of node %d after process is: \n", ii );
-            if (&pNode->vCoRoots != NULL) {
-                for (int i = 0; i < pNode->vCoRoots.nSize; i++)
-                    printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
-            }
-            printf("\n");
-        }
+        // Abc_Obj_t * pNode; int ii;
+        // Abc_NtkForEachNode(pNtkTemp, pNode, ii) {
+        //     printf( "The CoRoots of node %d after process is: \n", ii );
+        //     if (&pNode->vCoRoots != NULL) {
+        //         for (int i = 0; i < pNode->vCoRoots.nSize; i++)
+        //             printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
+        //     }
+        //     printf("\n");
+        // }
         /***************************user define*************************************/
         // modify the coroots nodes index
         Abc_Obj_t * pNode1; Abc_Obj_t * pNode2; int i; int j;
@@ -455,9 +455,10 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         // Abc_NtkForEachNode(pNtkTemp, pNode1, i) pNode1->fMarker = false;
         Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
             if (pNode1->fMarker == true) continue;
-            Vec_Int_t *coRootTemp = Vec_IntAlloc(0);
             Vec_Int_t *coNodeTemp = Vec_IntAlloc(0);
+            Vec_IntPushUnique(coNodeTemp, pNode1->Id);
             Vec_IntSort(&pNode1->vCoRoots, NULL);
+            // collect all LUTs within same KL cut
             Abc_NtkForEachNode(pNtkTemp, pNode2, j) {
                 Vec_IntSort(&pNode2->vCoRoots, NULL);
                 if (pNode1->vCoRoots.nSize == pNode2->vCoRoots.nSize) {
@@ -469,22 +470,49 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
                         }
                     }
                     if (isequal) {
-                        for (int l = 0; l < pNode2->vFanouts.nSize; l++) {
-                            Vec_IntPushUnique(coRootTemp, pNode2->vFanouts.pArray[l]);
-                        }
                         Vec_IntPushUnique(coNodeTemp, pNode2->Id);
                     }
-                    //printf( "Writing traditional SMV is available for AIGs only.\n" );
                 }
             }
-            Vec_IntSort(coRootTemp, NULL);
-            for (i = 0; i < coNodeTemp->nSize; i++) {
-                int nodeTemp = coNodeTemp->pArray[i];
+            // collect all fanins of these LUTs
+            Vec_Int_t *allFanins = Vec_IntAlloc(0);
+            for (j = 0; j < coNodeTemp->nSize; j++) {
+                int nodeTemp = coNodeTemp->pArray[j];
                 Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
-                currentNode->vCoRoots = *coRootTemp;
+                for (int k = 0; k < currentNode->vFanins.nSize; k++) {
+                    Vec_IntPushUnique(allFanins, currentNode->vFanins.pArray[k]);
+                }
+            }
+
+            for (j = 0; j < coNodeTemp->nSize; j++) {
+                int nodeTemp = coNodeTemp->pArray[j];
+                Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
+                if (allFanins->nSize <= 6)
+                    currentNode->vCoRoots = *coNodeTemp;
+                else {
+                    Vec_Int_t *coNodeSelf = Vec_IntAlloc(0);
+                    Vec_IntPushUnique(coNodeSelf, currentNode->Id);
+                    currentNode->vCoRoots = *coNodeSelf;
+                }
                 currentNode->fMarker = true;
             }
         }
+
+        // Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
+        //     Vec_Int_t coNodeTemp = pNode1->vCoRoots;
+        //     printf("The CoRoots of node %d is: \n", i );
+        //     for (int k = 0; k < pNode1->vCoRoots.nSize; k++) {
+        //         printf("%d ", (int *)pNode1->vCoRoots.pArray[k]);
+        //     }
+        //     printf("\n");
+        //
+        //     printf("The Fanins of node %d is: \n", i );
+        //     for (int k = 0; k < pNode1->vFanins.nSize; k++) {
+        //         printf("%d ", (int *)pNode1->vFanins.pArray[k]);
+        //     }
+        //     printf("\n\n");
+        // }
+
 
     if ( pNtkTemp == NULL )
     {

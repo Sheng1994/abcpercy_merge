@@ -89,6 +89,14 @@ void If_ManCleanMarkV( If_Man_t * p )
     If_ManForEachObj( p, pObj, i )
         pObj->fVisit = 0;
 }
+
+void If_ManCleanMarkM( If_Man_t * p )
+{
+    If_Obj_t * pObj;
+    int i;
+    If_ManForEachObj( p, pObj, i )
+        pObj->fMark = 0;
+}
  
 #if 0
 
