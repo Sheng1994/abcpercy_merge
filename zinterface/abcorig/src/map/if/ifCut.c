@@ -2373,6 +2373,15 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
                 }
                 NodesInCutTemp = NodesInCut;
             }
+
+            if (pObj->vBestKLCut == NULL) {
+                pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
+                pObj->vBestKLFanins = Vec_PtrAlloc(0);
+                pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
+                pObj->vBestKLFanouts = Vec_PtrAlloc(0);
+                pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
+            }
+
             // deep copy to realize packing for percy mapping function
             If_Obj_t *tempObj = deepCopyIfObj(pObj);
             Vec_PtrCopy( tempObj->CutBest.vNodesInCut, pObj->vBestKLCut);
