@@ -645,9 +645,9 @@ Abc_Obj_t * Abc_NodeFromIf_rec( Abc_Ntk_t * pNtkNew, If_Man_t * pIfMan, If_Obj_t
         Vec_IntPushUnique(&pNodeNew->vCoFanins,*(int *)pIfObj->vBestKLNonFanins->pArray[i]);
     }
 
-    printf("The fanins of Current KL Cut %d: ", pNodeNew->Id);
-    for (int i = 0; i < pNodeNew->vFanins.nSize; i++) {
-        printf("%d ", (int *)pNodeNew->vFanins.pArray[i]);
+    printf("The co-fanouts of Current KL Cut %d: ", pNodeNew->Id);
+    for (int i = 0; i < pNodeNew->vCoRoots.nSize; i++) {
+        printf("%d ", (int *)pNodeNew->vCoRoots.pArray[i]);
     }
     printf("\n");
 

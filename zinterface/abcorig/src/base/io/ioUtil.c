@@ -426,28 +426,9 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
     else
-        // if (pNtk) {
-        //     Abc_Obj_t * pNode; int ii;
-        //     Abc_NtkForEachNode(pNtk, pNode, ii) {
-        //         printf( "The CoRoots of node %d before process is: \n", ii );
-        //         if (&pNode->vCoRoots != NULL) {
-        //             for (int i = 0; i < pNode->vCoRoots.nSize; i++)
-        //                 printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
-        //         }
-        //         printf("\n");
-        //     }
-        // }
         /***********************generate pNtktemp here*******************************/
         pNtkTemp = Abc_NtkToNetlist( pNtk );
-        // Abc_Obj_t * pNode; int ii;
-        // Abc_NtkForEachNode(pNtkTemp, pNode, ii) {
-        //     printf( "The CoRoots of node %d after process is: \n", ii );
-        //     if (&pNode->vCoRoots != NULL) {
-        //         for (int i = 0; i < pNode->vCoRoots.nSize; i++)
-        //             printf("%d ", (int *)pNode->vCoRoots.pArray[i]);
-        //     }
-        //     printf("\n");
-        // }
+
         /***************************user define*************************************/
         // modify the coroots nodes index
         Abc_Obj_t * pNode1; Abc_Obj_t * pNode2; int i; int j;
@@ -497,21 +478,6 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
                 currentNode->fMarker = true;
             }
         }
-
-        // Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
-        //     Vec_Int_t coNodeTemp = pNode1->vCoRoots;
-        //     printf("The CoRoots of node %d is: \n", i );
-        //     for (int k = 0; k < pNode1->vCoRoots.nSize; k++) {
-        //         printf("%d ", (int *)pNode1->vCoRoots.pArray[k]);
-        //     }
-        //     printf("\n");
-        //
-        //     printf("The Fanins of node %d is: \n", i );
-        //     for (int k = 0; k < pNode1->vFanins.nSize; k++) {
-        //         printf("%d ", (int *)pNode1->vFanins.pArray[k]);
-        //     }
-        //     printf("\n\n");
-        // }
 
 
     if ( pNtkTemp == NULL )
