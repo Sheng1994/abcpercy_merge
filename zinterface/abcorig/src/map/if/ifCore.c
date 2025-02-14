@@ -233,8 +233,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
-    int levelleaf = 0;
-    If_ManSelRec(p, nleaves, selectedCuts, levelleaf);
+    int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
+    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves);
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {

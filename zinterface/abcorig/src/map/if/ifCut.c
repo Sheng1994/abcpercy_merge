@@ -2118,11 +2118,11 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 }
 
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
-    if (pObj->KLMerge < MergeTemp) {
+    if (pObj->KLArea < AreaTemp) {
         return 1;
     } else if (pObj->KLDelay < DelayTemp) {
         return 1;
-    } else if (pObj->KLArea < AreaTemp) {
+    }  else if (pObj->KLMerge < MergeTemp) {
         return 1;
     } else if (pObj->KLEdge < EdgeTemp) {
         return 1;
@@ -2159,8 +2159,8 @@ void vKLPara(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
         int curr_node = *(int *)faninlist->pArray[i];
         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
         if (curr_node_obj->Type == 4) {
-            if (curr_node_obj->vKLCut != NULL) {
-                sumofarea = sumofarea + curr_node_obj->vKLCut->nSize;
+            if (curr_node_obj->vBestKLCut != NULL) {
+                sumofarea = sumofarea + curr_node_obj->vBestKLCut->nSize;
             } else {
                 sumofarea = sumofarea + 1;
             }
@@ -2270,10 +2270,18 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
                             Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
                             If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
                         }
+                    } else {
+                        if (!Vec_Ismemeber(NodesInCut,curr_node0)) {
+                            If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
+                        }
                     }
                     if (curr_node1 > p->vCis->nSize) {
                         if (!Vec_Ismemeber(NodesInCut,curr_node1)) {
                             Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
+                            If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
+                        }
+                    } else {
+                        if (!Vec_Ismemeber(NodesInCut,curr_node1)) {
                             If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
                         }
                     }
@@ -2319,8 +2327,8 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
         //printf("\nProcessing node %d:\n",pObj->Id);
         // loop each node in the cut
 
-        int numlimit = round(0.1*(pObj->CutBest.vNodesInCut->nSize)+0.5);
-        for (int j = 0; j < numlimit; j++) {
+        // int numlimit = round(1.0*(pObj->CutBest.vNodesInCut->nSize));
+        for (int j = 0; j < 1; j++) {
         // for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
             Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
             Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
@@ -2461,13 +2469,14 @@ int If_ManCoverNum( If_Obj_t *leafObj, Vec_Ptr_t *nleaves) {
     return covernum;
 }
 
-void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int levelleaf) {
+void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int levelleaf, Vec_Ptr_t *coveredLeaves) {
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     if (nleaves->nSize > 0) {
         while (nleaves->nSize > 0) {
             int covernumax = 0; int bestObj  = 0;
             for (int i = 0; i < nleaves->nSize; i++) {
                 auto *leafObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) nleaves->pArray[i]);
+                Vec_PtrPush(coveredLeaves, &leafObj->Id);
                 int covernum = If_ManCoverNum(leafObj, nleaves);
                 if (covernumax < covernum) {
                     covernumax = covernum;
@@ -2513,12 +2522,14 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
             auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
             if (tempObj->Type == 4) {
                 for (int j = 0; j < tempObj->vBestKLFanouts->nSize; j++) {
-                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
-                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
+                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
+                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
+                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
                 }
             }
         }
-        If_ManSelRec(p, nleaves, solutions, levelleaf);
+        If_ManSelRec(p, nleaves, solutions, levelleaf, coveredLeaves);
     }
 }
 
