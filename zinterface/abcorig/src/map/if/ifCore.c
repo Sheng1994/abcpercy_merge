@@ -124,12 +124,12 @@ void If_ManpObjPrint( If_Man_t * p, If_Obj_t * pObj ) {
     int leveltemp = pObj->Level;
     printf("AIG Level: %d KL Level: %d \n", leveltemp, klleveltemp);
     // print the Cuts contain current node
-    printf("Cuts contain current node %d: ", pObj->Id);
-    for (int j = 0; j < pObj->vCutsWithNode->nSize; j++) {
-        int pNum = *(int *)Vec_PtrEntry(pObj->vCutsWithNode, j);
-        printf("%d ", pNum);
-    }
-    printf("\n\n");
+    // printf("Cuts contain current node %d: ", pObj->Id);
+    // for (int j = 0; j < pObj->vCutsWithNode->nSize; j++) {
+    //     int pNum = *(int *)Vec_PtrEntry(pObj->vCutsWithNode, j);
+    //     printf("%d ", pNum);
+    // }
+    // printf("\n\n");
 }
 
 /**Function*************************************************************
@@ -200,23 +200,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
             If_ManImproveMapping( p );
     }
 
-    /***********************user define cut expand************************/
-    // Test-1: extend based on nodes on current cut
-    //If_CutsWithNode(p);
-    // Test-2: extend based on nodes on current leaves
-    //If_CutsWithLeaf(p);
-    // int maxCuts = 5;
-    // If_NearCutEnuLeaves(p, maxCuts);
-    // Test-3: extend based on root's fanin
-    // If_NearCutEnuIOs(p);
-    // Test-4: extend based on recursive
-    // Only Test-4 works well
-    If_NearCutEnuRec(p, 6, 1);
-
-    /****************************Print*******************************/
-    // If_ManForEachNode( p, pObj, i ) {
-    //     If_ManpObjPrint( p, pObj );
-    // }
+    /***********************user define data transform************************/
+    If_TransandSort(p);
 
     /***********************user define network reforming************************/
     // bottom-down reforming
