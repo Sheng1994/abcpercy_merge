@@ -9,7 +9,7 @@
   Synopsis    [The central part of the mapper.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
@@ -211,7 +211,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // If_NearCutEnuIOs(p);
     // Test-4: extend based on recursive
     // Only Test-4 works well
-    If_NearCutEnuRec(p, 6, 3);
+    If_NearCutEnuRec(p, 6, 1);
 
     /****************************Print*******************************/
     // If_ManForEachNode( p, pObj, i ) {
@@ -231,6 +231,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
             }
         }
     }
+
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);

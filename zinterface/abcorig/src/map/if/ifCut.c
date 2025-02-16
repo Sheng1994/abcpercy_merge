@@ -9,7 +9,7 @@
   Synopsis    [Cut computation.]
 
   Author      [Alan Mishchenko]
-  
+
   Affiliation [UC Berkeley]
 
   Date        [Ver. 1.0. Started - November 21, 2006.]
@@ -37,7 +37,7 @@ ABC_NAMESPACE_IMPL_START
   Synopsis    [Check correctness of cuts.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -63,7 +63,7 @@ static inline int If_CutVerifyCut( If_Cut_t * pBase, If_Cut_t * pCut ) // check 
 int If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered )
 {
     static int Count = 0;
-    If_Cut_t * pCut0, * pCut1; 
+    If_Cut_t * pCut0, * pCut1;
     int i, k, m, n, Value;
     assert( pCutSet->nCuts > 0 );
     for ( i = 0; i < pCutSet->nCuts; i++ )
@@ -111,7 +111,7 @@ int If_CutVerifyCuts( If_Set_t * pCutSet, int fOrdered )
   Synopsis    [Returns 1 if pDom is contained in pCut.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -138,14 +138,14 @@ static inline int If_CutCheckDominance( If_Cut_t * pDom, If_Cut_t * pCut )
   Synopsis    [Returns 1 if the cut is contained.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut, int fSaveCut0 )
-{ 
+{
     If_Cut_t * pTemp;
     int i, k;
     assert( pCutSet->ppCuts[pCutSet->nCuts] == pCut );
@@ -193,14 +193,14 @@ int If_CutFilter( If_Set_t * pCutSet, If_Cut_t * pCut, int fSaveCut0 )
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int If_CutMergeOrdered_( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC1, If_Cut_t * pC )
-{ 
+{
     int nSizeC0 = pC0->nLeaves;
     int nSizeC1 = pC1->nLeaves;
     int nLimit  = pC0->nLimit;
@@ -282,7 +282,7 @@ FlushCut1:
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -368,14 +368,14 @@ FlushCut1:
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
 
 ***********************************************************************/
 int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pCut )
-{ 
+{
     int nLutSize = pCut0->nLimit;
     int nSize0 = pCut0->nLeaves;
     int nSize1 = pCut1->nLeaves;
@@ -384,7 +384,7 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pC
     int * pC = pCut->pLeaves;
     int i, k, c;
     // compare two cuts with different numbers
-    c = nSize0; 
+    c = nSize0;
     for ( i = 0; i < nSize1; i++ )
     {
         for ( k = 0; k < nSize0; k++ )
@@ -412,7 +412,7 @@ int If_CutMerge( If_Man_t * p, If_Cut_t * pCut0, If_Cut_t * pCut1, If_Cut_t * pC
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -442,7 +442,7 @@ int If_CutCompareDelay( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -472,7 +472,7 @@ int If_CutCompareDelayOld( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
   Synopsis    [Prepares the object for FPGA mapping.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -506,7 +506,7 @@ int If_CutCompareArea( If_Man_t * p, If_Cut_t ** ppC0, If_Cut_t ** ppC1 )
   Synopsis    [Comparison function for two cuts.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -516,7 +516,7 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
 {
     if ( p->pPars->fPower )
     {
-        if ( p->SortMode == 1 ) // area flow       
+        if ( p->SortMode == 1 ) // area flow
         {
             if ( pC0->Area < pC1->Area - p->fEpsilon )
                 return -1;
@@ -592,7 +592,7 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
         if ( pC0->nLeaves > pC1->nLeaves )
             return 1;
         return 0;
-    } 
+    }
     else  // regular
     {
         if ( p->SortMode == 1 ) // area
@@ -685,7 +685,7 @@ static inline int If_ManSortCompare( If_Man_t * p, If_Cut_t * pC0, If_Cut_t * pC
   Synopsis    [Comparison function for two cuts.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -750,7 +750,7 @@ static inline int If_ManSortCompare_old( If_Man_t * p, If_Cut_t * pC0, If_Cut_t 
   Synopsis    [Performs incremental sorting of cuts.]
 
   Description [Currently only the trivial sorting is implemented.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -772,10 +772,10 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
         return;
     }
 
-    if ( !pCut->fUseless && 
-         (p->pPars->fUseDsd || p->pPars->pFuncCell2 || p->pPars->fUseBat || 
+    if ( !pCut->fUseless &&
+         (p->pPars->fUseDsd || p->pPars->pFuncCell2 || p->pPars->fUseBat ||
           p->pPars->pLutStruct || p->pPars->fUserRecLib || p->pPars->fUserSesLib || p->pPars->fUserLutDec || p->pPars->fUserLut2D ||
-          p->pPars->fEnableCheck07 || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec || 
+          p->pPars->fEnableCheck07 || p->pPars->fUseCofVars || p->pPars->fUseAndVars || p->pPars->fUse34Spec ||
           p->pPars->fUseDsdTune || p->pPars->fEnableCheck75 || p->pPars->fEnableCheck75u || p->pPars->fUseCheck1 || p->pPars->fUseCheck2) )
     {
         If_Cut_t * pFirst = pCutSet->ppCuts[0];
@@ -809,7 +809,7 @@ void If_CutSort( If_Man_t * p, If_Set_t * pCutSet, If_Cut_t * pCut )
   Synopsis    [Orders the leaves of the cut.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -838,7 +838,7 @@ void If_CutOrder( If_Cut_t * pCut )
   Synopsis    [Checks correctness of the cut.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -868,7 +868,7 @@ int If_CutCheck( If_Cut_t * pCut )
   Synopsis    [Prints one cut.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -888,7 +888,7 @@ void If_CutPrint( If_Cut_t * pCut )
   Synopsis    [Prints one cut.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -909,7 +909,7 @@ void If_CutPrintTiming( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Moves the cut over the latch.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -931,7 +931,7 @@ void If_CutLift( If_Cut_t * pCut )
   Synopsis    [Computes area flow.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -947,14 +947,14 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
     {
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             AddOn = If_ObjCutBest(pLeaf)->Area;
-        else 
+        else
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
             AddOn = If_ObjCutBest(pLeaf)->Area / pLeaf->EstRefs;
         }
         if ( Flow >= (float)1e32 || AddOn >= (float)1e32 )
             Flow = (float)1e32;
-        else 
+        else
         {
             Flow += AddOn;
             if ( Flow > (float)1e32 )
@@ -969,7 +969,7 @@ float If_CutAreaFlow( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area flow.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -985,14 +985,14 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
     {
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             AddOn = If_ObjCutBest(pLeaf)->Edge;
-        else 
+        else
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
             AddOn = If_ObjCutBest(pLeaf)->Edge / pLeaf->EstRefs;
         }
         if ( Flow >= (float)1e32 || AddOn >= (float)1e32 )
             Flow = (float)1e32;
-        else 
+        else
         {
             Flow += AddOn;
             if ( Flow > (float)1e32 )
@@ -1007,7 +1007,7 @@ float If_CutEdgeFlow( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area flow.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1024,7 +1024,7 @@ float If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
         Power += pSwitching[pLeaf->Id];
         if ( pLeaf->nRefs == 0 || If_ObjIsConst1(pLeaf) )
             Power += If_ObjCutBest(pLeaf)->Power;
-        else 
+        else
         {
             assert( pLeaf->EstRefs > p->fEpsilon );
             Power += If_ObjCutBest(pLeaf)->Power / pLeaf->EstRefs;
@@ -1038,7 +1038,7 @@ float If_CutPowerFlow( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
   Synopsis    [Average number of references of the leaves.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1060,11 +1060,11 @@ float If_CutAverageRefs( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
- 
+
 ***********************************************************************/
 float If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut )
 {
@@ -1087,7 +1087,7 @@ float If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1114,7 +1114,7 @@ float If_CutAreaRef( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1137,7 +1137,7 @@ float If_CutAreaDerefed( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1161,11 +1161,11 @@ float If_CutAreaRefed( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
- 
+
 ***********************************************************************/
 float If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut )
 {
@@ -1188,7 +1188,7 @@ float If_CutEdgeDeref( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1215,7 +1215,7 @@ float If_CutEdgeRef( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes edge of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1238,7 +1238,7 @@ float If_CutEdgeDerefed( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1262,11 +1262,11 @@ float If_CutEdgeRefed( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
- 
+
 ***********************************************************************/
 float If_CutPowerDeref( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
 {
@@ -1290,7 +1290,7 @@ float If_CutPowerDeref( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1318,7 +1318,7 @@ float If_CutPowerRef( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
   Synopsis    [Computes Power of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1341,7 +1341,7 @@ float If_CutPowerDerefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
   Synopsis    [Computes area of the first level.]
 
   Description [The cut need to be derefed.]
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1364,7 +1364,7 @@ float If_CutPowerRefed( If_Man_t * p, If_Cut_t * pCut, If_Obj_t * pRoot )
   Synopsis    [Computes the cone of the cut in AIG with choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1384,7 +1384,7 @@ int If_CutGetCutMinLevel( If_Man_t * p, If_Cut_t * pCut )
   Synopsis    [Computes the cone of the cut in AIG with choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1421,7 +1421,7 @@ int If_CutGetCone_rec( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut )
   Synopsis    [Computes the cone of the cut in AIG with choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1451,7 +1451,7 @@ int If_CutGetCones( If_Man_t * p )
   Synopsis    [Computes the cone of the cut in AIG with choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1473,7 +1473,7 @@ void If_CutFoundFanins_rec( If_Obj_t * pObj, Vec_Int_t * vLeaves )
   Synopsis    [Computes the cone of the cut in AIG with choices.]
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1508,7 +1508,7 @@ int If_CutCountTotalFanins( If_Man_t * p )
   Synopsis    []
 
   Description []
-               
+
   SideEffects []
 
   SeeAlso     []
@@ -1530,7 +1530,7 @@ int If_CutFilter2_rec( If_Man_t * p, If_Obj_t * pObj, int LevelMin )
 }
 int If_CutFilter2( If_Man_t * p, If_Obj_t * pNode, If_Cut_t * pCut )
 {
-    If_Obj_t * pLeaf, * pTemp;  int i, Count = 0; 
+    If_Obj_t * pLeaf, * pTemp;  int i, Count = 0;
 //    printf( "Considering node %d and cut {", pNode->Id );
 //    If_CutForEachLeaf( p, pCut, pLeaf, i )
 //        printf( " %d", pLeaf->Id );
@@ -2118,11 +2118,11 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 }
 
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
-    if (pObj->KLArea < AreaTemp) {
+    if (pObj->KLMerge < MergeTemp) {
         return 1;
     } else if (pObj->KLDelay < DelayTemp) {
         return 1;
-    }  else if (pObj->KLMerge < MergeTemp) {
+    } else if (pObj->KLArea < AreaTemp) {
         return 1;
     } else if (pObj->KLEdge < EdgeTemp) {
         return 1;
@@ -2159,8 +2159,8 @@ void vKLPara(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
         int curr_node = *(int *)faninlist->pArray[i];
         If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
         if (curr_node_obj->Type == 4) {
-            if (curr_node_obj->vBestKLCut != NULL) {
-                sumofarea = sumofarea + curr_node_obj->vBestKLCut->nSize;
+            if (curr_node_obj->vKLCut != NULL) {
+                sumofarea = sumofarea + curr_node_obj->vKLCut->nSize;
             } else {
                 sumofarea = sumofarea + 1;
             }
@@ -2270,18 +2270,10 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
                             Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin0->Id);
                             If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
                         }
-                    } else {
-                        if (!Vec_Ismemeber(NodesInCut,curr_node0)) {
-                            If_CoreRec(p,pObj,curr_node0,maxFanin,maxFanout,root_level,NodesInCut);
-                        }
                     }
                     if (curr_node1 > p->vCis->nSize) {
                         if (!Vec_Ismemeber(NodesInCut,curr_node1)) {
                             Vec_PtrPushUnique(NodesInCut,&curr_node_obj->pFanin1->Id);
-                            If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
-                        }
-                    } else {
-                        if (!Vec_Ismemeber(NodesInCut,curr_node1)) {
                             If_CoreRec(p,pObj,curr_node1,maxFanin,maxFanout,root_level,NodesInCut);
                         }
                     }
@@ -2318,137 +2310,74 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
     //printf("faninCount = %d\n", faninCount);
 }
 
+/************************************core function****************************************/
+/************************************core function****************************************/
+/* the expanding of KL Cut seems not work very efficiency, the multi-output based on original */
+/*ABC results seems more reasonable, so here the nulti-output cut is generated by adding fanouts*/
+/*of certai nodes in the cut*/
 void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
     If_ManCleanMarkV(p); If_ManCleanMarkM(p);
     If_Obj_t *pObj; int i;
     If_ManForEachNode(p, pObj, i) {
         // initialize the vKLCut
         pObj->vKLCut = Vec_PtrAlloc(0);
-        //printf("\nProcessing node %d:\n",pObj->Id);
-        // loop each node in the cut
 
-        // int numlimit = round(1.0*(pObj->CutBest.vNodesInCut->nSize));
-        for (int j = 0; j < 1; j++) {
-        // for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
-            Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
-            Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
-            // Vec_PtrPush(NodesInCut, &pObj->Id);
-            int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
-            int root_level = pObj->Level;
-            If_ManCleanMarkM(p);
-            If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
-        }
-        // select best KL cut
-        // initialize KL cut parameters
-        pObj->KLArea = IF_INFINITY;
-        pObj->KLDelay = IF_INFINITY;
-        pObj->KLLeaves = IF_INFINITY;
-        pObj->KLEdge = IF_INFINITY;
-        pObj->KLPower = IF_INFINITY;
-        pObj->KLMerge= IF_INFINITY;
         // in a while loop until find the best cut
         bool found = false; Vec_Ptr_t *NodesInCutTemp = nullptr;
-        while (!found) {
-            for (int j = 0; j < pObj->vKLCut->nSize; j++) {
-                auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, j);
-                float AreaTemp = pObj->KLArea;
-                float DelayTemp = pObj->KLDelay;
-                float LeavesTemp = pObj->KLLeaves;
-                float EdgeTemp = pObj->KLEdge;
-                float PowerTemp = pObj->KLPower;
-                float MergeTemp = pObj->KLMerge;
-                vKLPara(p, pObj, NodesInCut);
-                int ifbetter = KLCompare(AreaTemp, DelayTemp, EdgeTemp, LeavesTemp, PowerTemp, MergeTemp, pObj);
-                // if is better, update the best KL Cut
-                if (ifbetter == 1) {
-                    pObj->vBestKLCut = Vec_PtrAlloc(0);
-                    for (int k = 0; k < Vec_PtrSize(NodesInCut); k++) {
-                        int pNum = *(int *)Vec_PtrEntry(NodesInCut, k);
-                        auto *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, pNum);
-                        Vec_PtrPush(pObj->vBestKLCut, &CurrNode->Id);
-                    }
-                    pObj->vBestKLFanins = Vec_PtrAlloc(0);
-                    pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
-                    pObj->vBestKLFanouts = Vec_PtrAlloc(0);
-                    pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
-                } else {
-                    pObj->KLArea = AreaTemp;
-                    pObj->KLDelay = DelayTemp;
-                    pObj->KLLeaves = LeavesTemp;
-                    pObj->KLEdge = EdgeTemp;
-                    pObj->KLPower = PowerTemp;
-                    pObj->KLMerge = MergeTemp;
-                }
-                NodesInCutTemp = NodesInCut;
-            }
 
-            if (pObj->vBestKLCut == NULL) {
-                pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
-                pObj->vBestKLFanins = Vec_PtrAlloc(0);
-                pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
-                pObj->vBestKLFanouts = Vec_PtrAlloc(0);
-                pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
-            }
+        // if (pObj->vBestKLCut == NULL) {
+            pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
+            pObj->vBestKLFanins = Vec_PtrAlloc(0);
+            pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
+            pObj->vBestKLFanouts = Vec_PtrAlloc(0);
+            pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
+        // }
 
-            // deep copy to realize packing for percy mapping function
-            If_Obj_t *tempObj = deepCopyIfObj(pObj);
-            Vec_PtrCopy( tempObj->CutBest.vNodesInCut, pObj->vBestKLCut);
-            If_Cut_t *pCutTemp = &tempObj->CutBest;
-            If_CutDAG(p, pCutTemp);
-            // int status = percy_map(pCutTemp);
-            int status = 1;
-            if (status != 1) {
-                printf("Percy Verification failed!\n");
-                //remove the current extended solution
-                if (pObj->vKLCut->nSize !=1) {
-                    printf("Nodes in failed KL Cut: ");
-                    for (int k = 0; k < NodesInCutTemp->nSize; k++) {
-                        int *pNum = (int *)Vec_PtrEntry(NodesInCutTemp, k);
-                        printf("%d ", *pNum);
-                    }
-                    printf("\n");
-                    Vec_PtrRemove( pObj->vKLCut, NodesInCutTemp );
-                } else {
-                    // if the only one left, delete some nodes
-                    auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, 0);
-                    NodesInCut->nSize = NodesInCut->nSize - 1;
+        if (pObj->vBestKLFanouts->nSize == 1) {
+            if (pObj->pFanin0 != NULL && pObj->pFanin0->Type == 4 && Vec_Ismemeber(pObj->vBestKLCut, pObj->pFanin0->Id))
+                Vec_PtrPushUnique(pObj->vBestKLFanouts, &pObj->pFanin0->Id);
+            if (pObj->pFanin1 != NULL && pObj->pFanin1->Type == 4 && Vec_Ismemeber(pObj->vBestKLCut, pObj->pFanin1->Id))
+                Vec_PtrPushUnique(pObj->vBestKLFanouts, &pObj->pFanin1->Id);
+        }
+
+        // deep copy to realize packing for percy mapping function
+        If_Obj_t *tempObj = deepCopyIfObj(pObj);
+        Vec_PtrCopy( tempObj->CutBest.vNodesInCut, pObj->vBestKLCut);
+        If_Cut_t *pCutTemp = &tempObj->CutBest;
+        If_CutDAG(p, pCutTemp);
+        // int status = percy_map(pCutTemp);
+        int status = 1;
+        if (status != 1) {
+            printf("Percy Verification failed!\n");
+            //remove the current extended solution
+            if (pObj->vKLCut->nSize !=1) {
+                printf("Nodes in failed KL Cut: ");
+                for (int k = 0; k < NodesInCutTemp->nSize; k++) {
+                    int *pNum = (int *)Vec_PtrEntry(NodesInCutTemp, k);
+                    printf("%d ", *pNum);
                 }
+                printf("\n");
+                Vec_PtrRemove( pObj->vKLCut, NodesInCutTemp );
             } else {
-                printf("Percy Verification successful!\n");
-                found = true;
-                // generate the info vCutsWithNode
-                // document that the coRoot nodes exists in current pObj
-                for (int k = 0; k < pObj->vBestKLFanouts->nSize; k++) {
-                    auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vBestKLFanouts->pArray[k]);
-                    if (CoObj->vCutsWithNode == NULL) {CoObj->vCutsWithNode = Vec_PtrAlloc(0);}
-                    Vec_PtrPushUnique(CoObj->vCutsWithNode, &pObj->Id);
-                }
+                // if the only one left, delete some nodes
+                auto *NodesInCut = (Vec_Ptr_t *)Vec_PtrEntry(pObj->vKLCut, 0);
+                NodesInCut->nSize = NodesInCut->nSize - 1;
+            }
+        } else {
+            printf("Percy Verification successful!\n");
+            // generate the info vCutsWithNode
+            // document that the coRoot nodes exists in current pObj
+            for (int k = 0; k < pObj->vBestKLFanouts->nSize; k++) {
+                auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vBestKLFanouts->pArray[k]);
+                if (CoObj->vCutsWithNode == NULL) {CoObj->vCutsWithNode = Vec_PtrAlloc(0);}
+                Vec_PtrPushUnique(CoObj->vCutsWithNode, &pObj->Id);
             }
         }
-        /*******************************print extend results***************************************/
-        // print the single LUT
+        /*******************************sort extend results***************************************/
+        // sort the single LUT
         Vec_PtrSort(pObj->CutBest.vNodesInCut, NULL);
-        // printf("Original LUT of Node %d: ", pObj->Id);
-        // for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
-        //     int pNum = *(int *)Vec_PtrEntry(pObj->CutBest.vNodesInCut, j);
-        //     printf("%d ", pNum);
-        // }
-        // // print the best KL Cut fanouts
-        // printf("\nBest KL Cut fanouts %d: ", pObj->Id);
-        // for (int j = 0; j < pObj->vBestKLFanouts->nSize; j++) {
-        //     int pNum = *(int *)Vec_PtrEntry(pObj->vBestKLFanouts, j);
-        //     printf("%d ", pNum);
-        // }
-        // // print the best KL Cut
+        // sort the best KL Cut
         Vec_PtrSort(pObj->vBestKLCut, NULL);
-        // printf("\nBest KL Cut of Node %d: ", pObj->Id);
-        // for (int j = 0; j < pObj->vBestKLCut->nSize; j++) {
-        //     int pNum = *(int *)Vec_PtrEntry(pObj->vBestKLCut, j);
-        //     printf("%d ", pNum);
-        // }
-        // int fanoutCount = FanoutCount(p, pObj->vBestKLCut)->nSize;
-        // int faninCount = FaninCount(p, pObj->vBestKLCut)->nSize;
-        // printf("with %d fanouts and %d fanins\n\n", fanoutCount, faninCount);
     }
     If_ManCleanMarkM(p);
 }
