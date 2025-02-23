@@ -441,6 +441,7 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
             Vec_IntSort(&pNode1->vCoRoots, NULL);
             // collect all LUTs within same KL cut
             Abc_NtkForEachNode(pNtkTemp, pNode2, j) {
+                if (pNode2->fMarker == true) continue;
                 Vec_IntSort(&pNode2->vCoRoots, NULL);
                 if (pNode1->vCoRoots.nSize == pNode2->vCoRoots.nSize) {
                     bool isequal = true;

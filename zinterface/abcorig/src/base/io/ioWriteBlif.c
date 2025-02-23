@@ -508,15 +508,26 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
     char combined[10];
     Vec_IntSort(&pNode->vCoRoots, NULL);
     if (pNode->vCoRoots.nSize > 1) {
-        for (int i1 = 0; i1 < pNode->vCoRoots.nSize; i1++) {
-            int firstCoRoot = pNode->vCoRoots.pArray[i1];
-            char temp[20];
-            sprintf(temp, "%d", firstCoRoot);
-            strcat(combined, temp);
+        if (pNode->vCoRoots.nSize == 2) {
+            for (int i1 = 0; i1 < pNode->vCoRoots.nSize; i1++) {
+                int firstCoRoot = pNode->vCoRoots.pArray[i1];
+                char temp[20];
+                sprintf(temp, "%d", firstCoRoot);
+                strcat(combined, temp);
+            }
+            fprintf( pFile, " CRX2%s", combined );
         }
-        fprintf( pFile, " CR%s", combined );
+        if (pNode->vCoRoots.nSize == 3) {
+            for (int i1 = 0; i1 < pNode->vCoRoots.nSize; i1++) {
+                int firstCoRoot = pNode->vCoRoots.pArray[i1];
+                char temp[20];
+                sprintf(temp, "%d", firstCoRoot);
+                strcat(combined, temp);
+            }
+            fprintf( pFile, " CRX3%s", combined );
+        }
     } else if (pNode->vFanins.nSize <=3) {
-        fprintf( pFile, " CR3" );
+        fprintf( pFile, " CRsingle" );
     }
 }
 
