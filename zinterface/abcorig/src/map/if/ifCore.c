@@ -220,7 +220,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
-    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves);
+    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1);
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {
@@ -239,9 +239,62 @@ int If_ManPerformMappingComb( If_Man_t * p )
         }
     }
 
+    /***********************user define rec combine*************************/
+    /*
+    Vec_Ptr_t *ntopnodes = Vec_PtrAlloc(0);
+    // collect the first layer leaves from fanouts
+    If_ManForEachCo( p, pObj, i ) {
+        Vec_PtrPushUnique(ntopnodes, &pObj->pFanin0->Id);
+    }
+    Vec_PtrSort(ntopnodes, NULL);
+    selectedCuts = Vec_PtrAlloc(0);
+    int levelnodes = 0; Vec_Ptr_t *coverednodes = Vec_PtrAlloc(0);
+    If_ManSelRecTopNodes(p, ntopnodes, selectedCuts, levelnodes, coverednodes, 1);
+    */
+
+    /***********************user define leaf cuts combine*******************/
+    /*combine the cuts with the same fanout*/
+    If_FaninCutComb(p);
+
     /****************************Print*******************************/
     If_ManForEachNode( p, pObj, i ) {
         If_ManpObjPrint( p, pObj );
+    }
+
+    If_ManForEachNode( p, pObj, i ) {
+        printf("Leaves for pFain0 of node %d:", pObj->Id);
+        if (pObj->pFanin0->Type == 4)
+            for (int i = 0; i<pObj->pFanin0->vBestKLFanins->nSize; i++) {
+                printf("%d ", *(int*)pObj->pFanin0->vBestKLFanins->pArray[i]);
+            }
+        else
+            printf("PI");
+        printf("\n");
+        printf("Roots for pFain0 of node %d:", pObj->Id);
+        if (pObj->pFanin0->Type == 4)
+            for (int i = 0; i<pObj->pFanin0->vBestKLFanouts->nSize; i++) {
+                printf("%d ", *(int*)pObj->pFanin0->vBestKLFanouts->pArray[i]);
+            }
+        else
+            printf("PI");
+        printf("\n");
+
+        printf("Leaves for pFain1 of node %d:", pObj->Id);
+        if (pObj->pFanin1->Type == 4)
+            for (int i = 0; i<pObj->pFanin1->vBestKLFanins->nSize; i++) {
+                printf("%d ", *(int*)pObj->pFanin1->vBestKLFanins->pArray[i]);
+            }
+        else
+            printf("PI");
+        printf("\n");
+        printf("Roots for pFain1 of node %d:", pObj->Id);
+        if (pObj->pFanin1->Type == 4)
+            for (int i = 0; i<pObj->pFanin1->vBestKLFanouts->nSize; i++) {
+                printf("%d ", *(int*)pObj->pFanin1->vBestKLFanouts->pArray[i]);
+            }
+        else
+            printf("PI");
+        printf("\n\n");
     }
 
     /***********************user define KL data transform************************/
