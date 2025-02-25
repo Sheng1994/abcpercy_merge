@@ -715,6 +715,7 @@ extern void            If_ManCleanNodeCopy( If_Man_t * p );
 extern void            If_ManCleanCutData( If_Man_t * p );
 extern void            If_ManCleanMarkV( If_Man_t * p );
 extern void            If_ManCleanMarkM( If_Man_t * p );
+extern void            If_ManCleanMarkS( If_Man_t * p );
 extern float           If_ManScanMapping( If_Man_t * p );
 extern float           If_ManScanMappingDirect( If_Man_t * p );
 extern float           If_ManScanMappingSeq( If_Man_t * p );

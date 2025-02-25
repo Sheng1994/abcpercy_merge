@@ -201,7 +201,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define data transform************************/
-    If_TransandSort(p);
+    // If_TransandSort(p);
+    If_NearCutEnuRec(p, 6, 3);
 
     /***********************user define network reforming************************/
     // bottom-down reforming
@@ -220,7 +221,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
-    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1);
+    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 3);
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {
@@ -232,29 +233,30 @@ int If_ManPerformMappingComb( If_Man_t * p )
                 continue;
             } else {
                 auto *coveredObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, pNum);
-                Vec_PtrCopy( coveredObj->vBestKLFanins, tempObj->vBestKLFanins );
-                Vec_PtrCopy( coveredObj->vBestKLFanouts, tempObj->vBestKLFanouts );
-                Vec_PtrCopy( coveredObj->vBestKLCut, tempObj->vBestKLCut );
+                if (coveredObj->Type == 4) {
+                    Vec_PtrCopy( coveredObj->vBestKLFanins, tempObj->vBestKLFanins );
+                    Vec_PtrCopy( coveredObj->vBestKLFanouts, tempObj->vBestKLFanouts );
+                    Vec_PtrCopy( coveredObj->vBestKLCut, tempObj->vBestKLCut );
+                }
             }
         }
     }
 
     /***********************user define rec combine*************************/
-    /*
-    Vec_Ptr_t *ntopnodes = Vec_PtrAlloc(0);
-    // collect the first layer leaves from fanouts
-    If_ManForEachCo( p, pObj, i ) {
-        Vec_PtrPushUnique(ntopnodes, &pObj->pFanin0->Id);
-    }
-    Vec_PtrSort(ntopnodes, NULL);
-    selectedCuts = Vec_PtrAlloc(0);
-    int levelnodes = 0; Vec_Ptr_t *coverednodes = Vec_PtrAlloc(0);
-    If_ManSelRecTopNodes(p, ntopnodes, selectedCuts, levelnodes, coverednodes, 1);
-    */
+    // Vec_Ptr_t *ntopnodes = Vec_PtrAlloc(0);
+    // // collect the first layer leaves from fanouts
+    // If_ManForEachCo( p, pObj, i ) {
+    //     Vec_PtrPushUnique(ntopnodes, &pObj->pFanin0->Id);
+    // }
+    // Vec_PtrSort(ntopnodes, NULL);
+    // selectedCuts = Vec_PtrAlloc(0);
+    // int levelnodes = 0; Vec_Ptr_t *coverednodes = Vec_PtrAlloc(0);
+    // If_ManSelRecTopNodes(p, ntopnodes, selectedCuts, levelnodes, coverednodes, 1);
+
 
     /***********************user define leaf cuts combine*******************/
     /*combine the cuts with the same fanout*/
-    If_FaninCutComb(p);
+    If_FaninCutComb(p, 6, 3);
 
     /****************************Print*******************************/
     If_ManForEachNode( p, pObj, i ) {
