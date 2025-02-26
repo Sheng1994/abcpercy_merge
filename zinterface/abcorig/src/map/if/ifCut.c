@@ -2130,13 +2130,13 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
     if (pObj->KLArea < AreaTemp) {
         return 1;
-    } else if (pObj->KLLeaves < LeavesTemp) {
+    }/* else if (pObj->KLLeaves < LeavesTemp) {
         return 1;
     } else if (pObj->KLEdge < EdgeTemp) {
         return 1;
     } else if (pObj->KLMerge < MergeTemp) {
         return 1;
-    }
+    }*/
     // } else if (pObj->KLLeaves < LeavesTemp) {
     //     return 1;
     // } else if (pObj->KLEdge < EdgeTemp) {
@@ -2177,7 +2177,7 @@ float If_CutAreaRec( If_Man_t * p, Vec_Ptr_t * faninlist )
     for (i = 0; i < faninlist->nSize; i++) {
         int curr_node = *(int *)faninlist->pArray[i];
         pLeaf = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
-        if ( pLeaf->nRefs > 1 || !If_ObjIsAnd(pLeaf) || pLeaf->fSpec == 1 ) {
+        if (--pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) || pLeaf->fSpec == 1 ) {
             continue;
         }
         if (pLeaf->vBestKLCut !=NULL) {
@@ -2243,7 +2243,7 @@ void vKLPara(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
     // pObj->KLArea = (pObj->vKLCut->nSize + sumofarea) / sumofanouts;
     float area = If_CutAreaRec( p, faninlist );
     pObj->KLArea = area;
-    printfff(pObj, NodesInCut);
+    //printfff(pObj, NodesInCut);
     printf("The KL area of this Cut is %f: \n", area);
 
     // 3-update edge
@@ -2271,7 +2271,7 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
     // auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vFanouts->pArray[0]);
 
     // only satisfy the IO limit will continue the recursive
-    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 10) {
+    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 15) {
         // add the current satisfied cut into vKLCut
         // make sure the NodesInCut is not repeated in vKLCut
         int ifcontinue = pObj->vKLCut->nSize==0 || !vKLCutRepeated(pObj, NodesInCut);
@@ -2448,8 +2448,8 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
             for (int j = 0; j < 1; j++) {
             // for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
                 Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
-                // Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
-                Vec_PtrPush(NodesInCut, &pObj->Id);
+                Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
+                //Vec_PtrPush(NodesInCut, &pObj->Id);
                 int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
                 int root_level = pObj->Level;
                 If_ManCleanMarkM(p);

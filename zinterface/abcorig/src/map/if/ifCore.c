@@ -201,7 +201,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define data transform************************/
-    // If_TransandSort(p);
+    //If_TransandSort(p);
     If_NearCutEnuRec(p, 6, 3);
 
     /***********************user define network reforming************************/
@@ -209,7 +209,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // this process will choose the single best KL-Cut for each node
     // use the layer by layer
     Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
-    // collect the first layer leaves from fanouts
+    //collect the first layer leaves from fanouts
     If_ManForEachCo( p, pObj, i ) {
         if (pObj->pFanin0->vBestKLFanins != NULL) {
             for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
@@ -217,7 +217,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
             }
         }
     }
-
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
