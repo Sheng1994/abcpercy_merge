@@ -1570,36 +1570,46 @@ If_Obj_t *deepCopyIfObj(const If_Obj_t *pObj) {
     if (pObj == NULL) {
         return NULL;  // Return NULL if the input object is NULL
     }
+
     // Allocate memory for the new object
     If_Obj_t *NewpObj = (If_Obj_t *)malloc(sizeof(If_Obj_t));
     if (NewpObj == NULL) {
         return NULL; // Memory allocation failed
     }
+
     // Copy the basic fields (primitive data)
     *NewpObj = *pObj;
-    // Deep copy vectors (assuming Vec_PtrDup works correctly for deep copying)
-    if (pObj->vFanouts) {
-        NewpObj->vFanouts = Vec_PtrDup(pObj->vFanouts);
-    } else {
-        NewpObj->vFanouts = NULL;
+
+    // Deep copy vectors, handling potential allocation failure and ensuring cleanup
+    NewpObj->vFanouts = (pObj->vFanouts) ? Vec_PtrDup(pObj->vFanouts) : NULL;
+    if (pObj->vFanouts && NewpObj->vFanouts == NULL) {
+        free(NewpObj);  // Cleanup allocated memory if deep copy failed
+        return NULL;
     }
-    if (pObj->vCutsWithNode) {
-        NewpObj->vCutsWithNode = Vec_PtrDup(pObj->vCutsWithNode);
-    } else {
-        NewpObj->vCutsWithNode = NULL;
+
+    NewpObj->vCutsWithNode = (pObj->vCutsWithNode) ? Vec_PtrDup(pObj->vCutsWithNode) : NULL;
+    if (pObj->vCutsWithNode && NewpObj->vCutsWithNode == NULL) {
+        free(NewpObj->vFanouts);  // Cleanup vFanouts if vCutsWithNode copy failed
+        free(NewpObj);
+        return NULL;
     }
-    if (pObj->CutBest.vNodesInCut) {
-        NewpObj->CutBest.vNodesInCut = Vec_PtrDup(pObj->CutBest.vNodesInCut);
-    } else {
-        NewpObj->CutBest.vNodesInCut = NULL;
+
+    NewpObj->CutBest.vNodesInCut = (pObj->CutBest.vNodesInCut) ? Vec_PtrDup(pObj->CutBest.vNodesInCut) : NULL;
+    if (pObj->CutBest.vNodesInCut && NewpObj->CutBest.vNodesInCut == NULL) {
+        free(NewpObj->vFanouts);  // Cleanup vFanouts if vNodesInCut copy failed
+        free(NewpObj->vCutsWithNode);  // Cleanup vCutsWithNode if vNodesInCut copy failed
+        free(NewpObj);
+        return NULL;
     }
 
     // Ensure pFanin0, pFanin1, pEquiv are copied as-is (no deep copy needed for these)
     NewpObj->pFanin0 = pObj->pFanin0;
     NewpObj->pFanin1 = pObj->pFanin1;
     NewpObj->pEquiv  = pObj->pEquiv;
+
     return NewpObj;
 }
+
 
 void freeIfObj(If_Obj_t *pObj) {
     if (pObj == NULL) {
@@ -2120,20 +2130,43 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
     if (pObj->KLArea < AreaTemp) {
         return 1;
-    } else if (pObj->KLMerge < MergeTemp) {
-        return 1;
-    } else if (pObj->KLDelay < DelayTemp) {
+    } else if (pObj->KLLeaves < LeavesTemp) {
         return 1;
     } else if (pObj->KLEdge < EdgeTemp) {
         return 1;
-    } else if (pObj->KLLeaves < LeavesTemp) {
+    } else if (pObj->KLMerge < MergeTemp) {
         return 1;
-    } else if (pObj->KLPower < PowerTemp) {
-        return 1;
-    } else {
-        return 0;
     }
+    // } else if (pObj->KLLeaves < LeavesTemp) {
+    //     return 1;
+    // } else if (pObj->KLEdge < EdgeTemp) {
+    //     return 1;
+    // } else if (pObj->KLMerge < MergeTemp) {
+    //     return 1;
+    // } else if (pObj->KLDelay < DelayTemp) {
+    //     return 1;
+    // } else if (pObj->KLPower < PowerTemp) {
+    //     return 1;
+    // } else {
+    //     return 0;
+    // }
 }
+
+// float If_CutAreaDeref( If_Man_t * p, If_Cut_t * pCut )
+// {
+//     If_Obj_t * pLeaf;
+//     float Area;
+//     int i;
+//     Area = If_CutLutArea(p, pCut);
+//     If_CutForEachLeaf( p, pCut, pLeaf, i )
+//     {
+//         assert( pLeaf->nRefs > 0 );
+//         if ( --pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) )
+//             continue;
+//         Area += If_CutAreaDeref( p, If_ObjCutBest(pLeaf) );
+//     }
+//     return Area;
+// }
 
 float If_CutAreaRec( If_Man_t * p, Vec_Ptr_t * faninlist )
 {
@@ -2144,17 +2177,19 @@ float If_CutAreaRec( If_Man_t * p, Vec_Ptr_t * faninlist )
     for (i = 0; i < faninlist->nSize; i++) {
         int curr_node = *(int *)faninlist->pArray[i];
         pLeaf = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
-        // if (pLeaf->vBestKLCut !=NULL && pLeaf->fSpec == 0 && pLeaf->vFanouts->nSize == 1) {
-        //     // pLeaf->fSpec == 1;
-        //     // printf("Fanin list of node %d:  \n",pLeaf->Id);
-        //     Vec_Ptr_t * faninlistNew = FaninCount(p, pLeaf->vBestKLCut);
-        //     // for (int j = 0; j < faninlistNew->nSize; j++) {
-        //     //     printf("%d ", *(int* )faninlistNew->pArray[j]);
-        //     // }
-        //     // printf("\n");
-        //     Area = Area + If_CutAreaRec(p, faninlistNew);
-        // }
-        Area = Area + pLeaf->KLArea;
+        if ( pLeaf->nRefs > 1 || !If_ObjIsAnd(pLeaf) || pLeaf->fSpec == 1 ) {
+            continue;
+        }
+        if (pLeaf->vBestKLCut !=NULL) {
+            pLeaf->fSpec = 1;
+            // printf("Fanin list of node %d:  \n",pLeaf->Id);
+            Vec_Ptr_t * faninlistNew = FaninCount(p, pLeaf->vBestKLCut);
+            // for (int j = 0; j < faninlistNew->nSize; j++) {
+            //     printf("%d ", *(int* )faninlistNew->pArray[j]);
+            // }
+            // printf("\n");
+            Area = Area + If_CutAreaRec(p, faninlistNew);
+        }
     }
     return Area;
 }
@@ -2209,7 +2244,7 @@ void vKLPara(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
     float area = If_CutAreaRec( p, faninlist );
     pObj->KLArea = area;
     printfff(pObj, NodesInCut);
-    printf("The area of this Cut is %f: \n", area);
+    printf("The KL area of this Cut is %f: \n", area);
 
     // 3-update edge
     float sumofedges = 0.0;
@@ -2236,16 +2271,15 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
     // auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vFanouts->pArray[0]);
 
     // only satisfy the IO limit will continue the recursive
-    if (faninCount <= maxFanin && fanoutCount <= maxFanout) {
+    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 10) {
         // add the current satisfied cut into vKLCut
         // make sure the NodesInCut is not repeated in vKLCut
         int ifcontinue = pObj->vKLCut->nSize==0 || !vKLCutRepeated(pObj, NodesInCut);
         // the first one always with original single fanout
         if (ifcontinue) {
             vKLAdd(p, pObj, NodesInCut);
-            // printfff(pObj, NodesInCut);
+            printfff(pObj, NodesInCut);
         }
-        printfff(pObj, NodesInCut);
         // update curr_node to it's fanin/fanout
         // if curr_node.level == root_level, use fanout + fanin
         // if curr_node.level < root_level, use fanin + fanout
@@ -2414,8 +2448,8 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
             for (int j = 0; j < 1; j++) {
             // for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
                 Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
-                Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
-                // Vec_PtrPush(NodesInCut, &pObj->Id);
+                // Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
+                Vec_PtrPush(NodesInCut, &pObj->Id);
                 int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
                 int root_level = pObj->Level;
                 If_ManCleanMarkM(p);
@@ -2665,11 +2699,11 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
                     }
                 }
             }
-            for (int j = 0; j < nleaves->nSize; j++) {
-                int pNum = *(int *)Vec_PtrEntry(nleaves, j);
-                printf("%d ", pNum);
-            }
-            printf("Need \n");
+            // for (int j = 0; j < nleaves->nSize; j++) {
+            //     int pNum = *(int *)Vec_PtrEntry(nleaves, j);
+            //     printf("%d ", pNum);
+            // }
+            // printf("Need \n");
         }
 
         printf("Reduced leaves of level %d with node number %d\n", levelleaf++, selectedCuts->nSize);

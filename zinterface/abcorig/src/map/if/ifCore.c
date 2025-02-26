@@ -252,8 +252,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // selectedCuts = Vec_PtrAlloc(0);
     // int levelnodes = 0; Vec_Ptr_t *coverednodes = Vec_PtrAlloc(0);
     // If_ManSelRecTopNodes(p, ntopnodes, selectedCuts, levelnodes, coverednodes, 1);
-
-
     /***********************user define leaf cuts combine*******************/
     /*combine the cuts with the same fanout*/
     If_FaninCutComb(p, 6, 3);
