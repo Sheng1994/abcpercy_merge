@@ -2130,13 +2130,13 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
     if (pObj->KLArea < AreaTemp) {
         return 1;
-    }/* else if (pObj->KLLeaves < LeavesTemp) {
+    } else if (pObj->KLLeaves < LeavesTemp) {
         return 1;
     } else if (pObj->KLEdge < EdgeTemp) {
         return 1;
     } else if (pObj->KLMerge < MergeTemp) {
         return 1;
-    }*/
+    }
     // } else if (pObj->KLLeaves < LeavesTemp) {
     //     return 1;
     // } else if (pObj->KLEdge < EdgeTemp) {
@@ -2180,8 +2180,25 @@ float If_CutAreaRec( If_Man_t * p, Vec_Ptr_t * faninlist )
         if (--pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) || pLeaf->fSpec == 1 ) {
             continue;
         }
+        // check if current node is a vice-output of a KL-Cut
+        // the KL-Cut must be visited by it's main fanout
+        if (pLeaf->vCutsWithNode->nSize > 1) {
+            bool occupied = false;
+            for (int j = 0; j < pLeaf->vCutsWithNode->nSize; j++) {
+                int coroot_node = *(int*)pLeaf->vCutsWithNode->pArray[j];
+                If_Obj_t* pCoroot = (If_Obj_t*)Vec_PtrEntry(p->vObjs, coroot_node);
+                if (pCoroot->fOccupy == 1) {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (occupied == true) {
+                continue;
+            }
+        }
         if (pLeaf->vBestKLCut !=NULL) {
             pLeaf->fSpec = 1;
+            pLeaf->fOccupy = 1;
             // printf("Fanin list of node %d:  \n",pLeaf->Id);
             Vec_Ptr_t * faninlistNew = FaninCount(p, pLeaf->vBestKLCut);
             // for (int j = 0; j < faninlistNew->nSize; j++) {
@@ -2192,6 +2209,44 @@ float If_CutAreaRec( If_Man_t * p, Vec_Ptr_t * faninlist )
         }
     }
     return Area;
+}
+
+float If_CutEdgeRec(If_Man_t* p, Vec_Ptr_t* faninlist)
+{
+    If_Obj_t* pLeaf;
+    float Edge;
+    int i;
+    Edge = faninlist->nSize;
+    for (i = 0; i < faninlist->nSize; i++) {
+        int curr_node = *(int*)faninlist->pArray[i];
+        pLeaf = (If_Obj_t*)Vec_PtrEntry(p->vObjs, curr_node);
+        if (--pLeaf->nRefs > 0 || !If_ObjIsAnd(pLeaf) || pLeaf->fSpec == 1) {
+            continue;
+        }
+        // check if current node is a vice-output of a KL-Cut
+        // the KL-Cut must be visited by it's main fanout
+        if (pLeaf->vCutsWithNode->nSize > 1) {
+            bool occupied = false;
+            for (int j = 0; j < pLeaf->vCutsWithNode->nSize; j++) {
+                int coroot_node = *(int*)pLeaf->vCutsWithNode->pArray[j];
+                If_Obj_t* pCoroot = (If_Obj_t*)Vec_PtrEntry(p->vObjs, coroot_node);
+                if (pCoroot->fOccupy == 1) {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (occupied == true) {
+                continue;
+            }
+        }
+        if (pLeaf->vBestKLCut != NULL) {
+            pLeaf->fSpec = 1;
+            pLeaf->fOccupy = 1;
+            Vec_Ptr_t* faninlistNew = FaninCount(p, pLeaf->vBestKLCut);
+            Edge = Edge + If_CutEdgeRec(p, faninlistNew);
+        }
+    }
+    return Edge;
 }
 
 void printfff(If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
@@ -2247,13 +2302,14 @@ void vKLPara(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
     printf("The KL area of this Cut is %f: \n", area);
 
     // 3-update edge
-    float sumofedges = 0.0;
-    for (int i = 0; i < faninlist->nSize; i++) {
-        int curr_node = *(int *)faninlist->pArray[i];
-        If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
-        sumofedges = sumofedges + curr_node_obj->KLEdge / curr_node_obj->EstRefs;
-    }
-    pObj->KLEdge = faninlist->nSize + sumofedges;
+    //float sumofedges = 0.0;
+    //for (int i = 0; i < faninlist->nSize; i++) {
+    //    int curr_node = *(int *)faninlist->pArray[i];
+    //    If_Obj_t *curr_node_obj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, curr_node);
+    //    sumofedges = sumofedges + curr_node_obj->KLEdge / curr_node_obj->EstRefs;
+    //}
+    //pObj->KLEdge = faninlist->nSize + sumofedges;
+    pObj->KLEdge = If_CutEdgeRec(p, faninlist);
     // 4-update nleaves
     pObj->KLLeaves = faninlist->nSize;
     // 5-update klMerge
@@ -2428,7 +2484,7 @@ bool If_ExistUnExtNode(If_Man_t* p, int level, int mode) {
 }
 
 void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
-    If_ManCleanMarkV(p); If_ManCleanMarkM(p);
+    If_ManCleanMarkV(p); If_ManCleanMarkM(p); If_ManCleanMarkO(p);
     If_Obj_t *pObj; int i; bool exist; int level = 1;
     while ( If_ExistUnExtNode(p, level, 1) ) {
         If_ManForEachNode(p, pObj, i) {
@@ -2474,7 +2530,7 @@ void If_NearCutEnuRec(If_Man_t* p, int maxFanin, int maxFanout) {
                     float EdgeTemp = pObj->KLEdge;
                     float PowerTemp = pObj->KLPower;
                     float MergeTemp = pObj->KLMerge;
-                    If_ManCleanMarkS( p );
+                    If_ManCleanMarkS(p);
                     vKLPara(p, pObj, NodesInCut);
                     int ifbetter = KLCompare(AreaTemp, DelayTemp, EdgeTemp, LeavesTemp, PowerTemp, MergeTemp, pObj);
                     // if is better, update the best KL Cut

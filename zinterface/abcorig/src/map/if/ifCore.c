@@ -220,6 +220,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
     Vec_PtrSort(nleaves, NULL);
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
+    /*type-1: side fanout add*/
+    /*type-2: KL-cut rec regeneration*/
     If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 3);
 
     Vec_PtrSort(selectedCuts, NULL);
