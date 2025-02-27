@@ -2130,13 +2130,14 @@ void vKLAdd(If_Man_t *p, If_Obj_t *pObj, Vec_Ptr_t *NodesInCut) {
 int KLCompare(float AreaTemp, float DelayTemp, float EdgeTemp, float LeavesTemp, float PowerTemp, float MergeTemp, If_Obj_t *pObj) {
     if (pObj->KLArea < AreaTemp) {
         return 1;
-    } else if (pObj->KLLeaves < LeavesTemp) {
-        return 1;
-    } else if (pObj->KLEdge < EdgeTemp) {
-        return 1;
-    } else if (pObj->KLMerge < MergeTemp) {
-        return 1;
     }
+    // else if (pObj->KLLeaves < LeavesTemp) {
+    //     return 1;
+    // } else if (pObj->KLEdge < EdgeTemp) {
+    //     return 1;
+    // } else if (pObj->KLMerge < MergeTemp) {
+    //     return 1;
+    // }
     // } else if (pObj->KLLeaves < LeavesTemp) {
     //     return 1;
     // } else if (pObj->KLEdge < EdgeTemp) {
@@ -2768,14 +2769,24 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
         for (int i = 0; i < selectedCuts->nSize; i++) {
             auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
             if (tempObj->Type == 4) {
-                for (int j = 0; j < tempObj->vBestKLFanouts->nSize; j++) {
-                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
-                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
-                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
-                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+                for (int j = 0; j < tempObj->vBestKLFanins->nSize; j++) {
+                    int tempId = *(int *)tempObj->vBestKLFanins->pArray[j];
+                    if (!Vec_Ismemeber(coveredLeaves, tempId))
+                        Vec_PtrPushUnique(nleaves, &tempId);
                 }
             }
         }
+        // for (int i = 0; i < selectedCuts->nSize; i++) {
+        //     auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
+        //     if (tempObj->Type == 4) {
+        //         for (int j = 0; j < tempObj->vBestKLFanouts->nSize; j++) {
+        //             if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
+        //                 Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
+        //             if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
+        //                 Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+        //         }
+        //     }
+        // }
         If_ManSelRec(p, nleaves, solutions, levelleaf, coveredLeaves, type, maxfanin, maxfanout);
     }
 }
@@ -2954,7 +2965,6 @@ void If_ManSelRecTopNodes(If_Man_t *p, Vec_Ptr_t *ntopNodes, Vec_Ptr_t *solution
     if (topNodesNew->nSize > 0)
         If_ManSelRecTopNodes(p, topNodesNew, solutions, levelnode, coveredNodes, type, maxfanout, maxfanin);
 }
-
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////
