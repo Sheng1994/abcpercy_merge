@@ -1679,17 +1679,17 @@ void If_CutDAG(If_Man_t* p, If_Cut_t* pCut)
         //printf("%d ", *(int*)pCut->vNodesInCut->pArray[j]);
     }
     //printf("\n");
-    for (int i = 0; i < Vec_PtrSize(pCut->netDAG); i++) {
-        Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pCut->netDAG, i);
-        Vec_Ptr_t *vInv = (Vec_Ptr_t *)Vec_PtrEntry(pCut->DagOP, i);
-        for (int j = 0; j < Vec_PtrSize(vRow); j++) {
-            int *pNum = (int *)Vec_PtrEntry(vRow, j);
-            int *pInv = (int *)Vec_PtrEntry(vInv, j);
-            //printf("netDAG[%d][%d] = %d with %d inv\n", i, j, *pNum, *pInv);
-        }
-    }
+    // for (int i = 0; i < Vec_PtrSize(pCut->netDAG); i++) {
+    //     Vec_Ptr_t *vRow = (Vec_Ptr_t *)Vec_PtrEntry(pCut->netDAG, i);
+    //     Vec_Ptr_t *vInv = (Vec_Ptr_t *)Vec_PtrEntry(pCut->DagOP, i);
+    //     for (int j = 0; j < Vec_PtrSize(vRow); j++) {
+    //         int *pNum = (int *)Vec_PtrEntry(vRow, j);
+    //         int *pInv = (int *)Vec_PtrEntry(vInv, j);
+    //         printf("netDAG[%d][%d] = %d with %d inv\n", i, j, *pNum, *pInv);
+    //     }
+    // }
 
-    //printf("\n");
+    printf("\n");
     // Return the 2D array (netDAG)
     // return netDAG;
 }
@@ -2328,7 +2328,7 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
     // auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vFanouts->pArray[0]);
 
     // only satisfy the IO limit will continue the recursive
-    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 15) {
+    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 20) {
         // add the current satisfied cut into vKLCut
         // make sure the NodesInCut is not repeated in vKLCut
         int ifcontinue = pObj->vKLCut->nSize==0 || !vKLCutRepeated(pObj, NodesInCut);
@@ -2336,6 +2336,12 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
         if (ifcontinue) {
             vKLAdd(p, pObj, NodesInCut);
             printfff(pObj, NodesInCut);
+            // Vec_Ptr_t * Fanouts = FanoutCount(p, NodesInCut);
+            // printf("THe fanouts of this cut is: ");
+            // for (int i = 0; i < Fanouts->nSize; i++) {
+            //     printf("%d ", *(int *)Fanouts->pArray[i]);
+            // }
+            // printf("\n\n");
         }
         // update curr_node to it's fanin/fanout
         // if curr_node.level == root_level, use fanout + fanin
@@ -2450,6 +2456,8 @@ void If_TransandSort(If_Man_t* p) {
             pObj->vBestKLFanins = Vec_PtrAlloc(0);
             pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
             pObj->vBestKLFanouts = Vec_PtrAlloc(0);
+            // If_Cut_t *pCutTemp = &pObj->CutBest;
+            // If_CutDAG(p, pCutTemp);
             pObj->vBestKLFanouts = FanoutCount(p, pObj->vBestKLCut);
         }
         /*******************************sort extend results***************************************/
@@ -2762,31 +2770,27 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
             // }
             // printf("Need \n");
         }
-
         printf("Reduced leaves of level %d with node number %d\n", levelleaf++, selectedCuts->nSize);
-
         // update the nleaves based on current selections
-        for (int i = 0; i < selectedCuts->nSize; i++) {
-            auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
-            if (tempObj->Type == 4) {
-                for (int j = 0; j < tempObj->vBestKLFanins->nSize; j++) {
-                    int tempId = *(int *)tempObj->vBestKLFanins->pArray[j];
-                    if (!Vec_Ismemeber(coveredLeaves, tempId))
-                        Vec_PtrPushUnique(nleaves, &tempId);
-                }
-            }
-        }
         // for (int i = 0; i < selectedCuts->nSize; i++) {
         //     auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
         //     if (tempObj->Type == 4) {
-        //         for (int j = 0; j < tempObj->vBestKLFanouts->nSize; j++) {
-        //             if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
-        //                 Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
-        //             if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
-        //                 Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+        //         for (int j = 0; j < tempObj->vBestKLFanins->nSize; j++) {
+        //             int tempId = *(int *)tempObj->vBestKLFanins->pArray[j];
+        //             if (!Vec_Ismemeber(coveredLeaves, tempId))
+        //                 Vec_PtrPushUnique(nleaves, &tempId);
         //         }
         //     }
         // }
+        for (int i = 0; i < selectedCuts->nSize; i++) {
+            auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
+            if (tempObj->Type == 4) {
+                if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
+                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
+                if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
+                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+            }
+        }
         If_ManSelRec(p, nleaves, solutions, levelleaf, coveredLeaves, type, maxfanin, maxfanout);
     }
 }
@@ -2854,7 +2858,7 @@ void If_FaninCutComb(If_Man_t *p, int maxfanin, int maxfanout) {
     }
 }
 
-void If_FaninCutCombUnit(If_Man_t *p, If_Obj_t *pObj, int maxfanin, int maxfanout) {
+/*void If_FaninCutCombUnit(If_Man_t *p, If_Obj_t *pObj, int maxfanin, int maxfanout) {
     if (pObj->Type == 4) {
         If_Obj_t * pObjF0 = pObj->pFanin0;
         If_Obj_t * pObjF1 = pObj->pFanin1;
@@ -2964,7 +2968,140 @@ void If_ManSelRecTopNodes(If_Man_t *p, Vec_Ptr_t *ntopNodes, Vec_Ptr_t *solution
     }
     if (topNodesNew->nSize > 0)
         If_ManSelRecTopNodes(p, topNodesNew, solutions, levelnode, coveredNodes, type, maxfanout, maxfanin);
+}*/
+
+
+/*************************user define layer bease KL enumeration*************************/
+int If_ManLayerCoverNumKL( Vec_Ptr_t *fanins, Vec_Ptr_t *nleaves) {
+    int covernum = 0;
+    for (int i = 0; i < nleaves->nSize; i++) {
+        int *pNum1 = (int *)Vec_PtrEntry(nleaves, i );
+        for (int j = 0; j < fanins->nSize; j++) {
+            int *pNum2 = (int *)Vec_PtrEntry(fanins, j );
+            if (*pNum1 == *pNum2) {covernum++;}
+        }
+    }
+    return covernum;
 }
+
+void If_LayerBasedExpand( If_Man_t *p, Vec_Ptr_t *nleaves, int maxFanin, int maxFanout ) {
+
+    Vec_PtrSort(nleaves, NULL);
+
+    printf("Nodes in current layer: ");
+    for (int i = 0; i < nleaves->nSize; i++) {
+        printf("%d ", *(int *)nleaves->pArray[i]);
+    }
+    printf("\n");
+
+    // generate the next layer's leaves based on original information
+    Vec_Ptr_t *nleavesNew = Vec_PtrAlloc(0);
+    Vec_Ptr_t *nleavesUpdate = Vec_PtrAlloc(0);
+    for (int i = 0; i < nleaves->nSize; i++) {
+        int nodetemp1 = *(int *)nleaves->pArray[i];
+        auto *currentNode1 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp1);
+        for (int j = 0; j < currentNode1->vBestKLFanins->nSize; j++) {
+            int nodetemp2 = *(int *)currentNode1->vBestKLFanins->pArray[j];
+            auto *currentNode2 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp2);
+            if (currentNode2->Type == 4)
+                Vec_PtrPushUnique(nleavesNew, &currentNode2->Id);
+        }
+    }
+
+    // for each node in the nleaves, try expanding it
+    // the rule of selecting cut: 1-cover more fanouts; 2-do not generate new fanin leaves
+    Vec_Ptr_t *nleavesCopy = Vec_PtrAlloc(0);
+    Vec_PtrCopy( nleavesCopy, nleaves );
+
+    for (int i = 0; i < nleaves->nSize; i++) {
+        int nodetemp = *(int *)nleaves->pArray[i];
+        auto *pObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+        if (pObj->fVisit == 1) {continue;}
+        // initialize the vKLCut and enumerate
+        pObj->vKLCut = Vec_PtrAlloc(0);
+        for (int j = 0; j < 1; j++) {
+            Vec_Ptr_t *NodesInCut = Vec_PtrAlloc(0);
+            Vec_PtrCopy(NodesInCut, pObj->CutBest.vNodesInCut);
+            int curr_node = *(int *)pObj->CutBest.vNodesInCut->pArray[j];
+            int root_level = pObj->Level;
+            If_ManCleanMarkM(p);
+            If_CoreRec(p, pObj, curr_node, maxFanin, maxFanout, root_level, NodesInCut);
+            if  (pObj->vKLCut->nSize == 0)
+                pObj->vKLCut = pObj->CutBest.vNodesInCut;
+        }
+        // choose the best cut for the node
+        int covernumax = 0; int klcutIndex = 0;
+        for (int j = 0; j < pObj->vKLCut->nSize; j++) {
+            Vec_Ptr_t * NodesInCut = (Vec_Ptr_t *)pObj->vKLCut->pArray[j];
+            Vec_Ptr_t * Fanins = FaninCount(p, NodesInCut);
+            Vec_Ptr_t * Fanouts = FanoutCount(p, NodesInCut);
+            bool ismem = true;
+            // for (int k = 0; k < Fanins->nSize; k++) {
+            //     int fanintemp = *(int *)Fanins->pArray[k];
+            //     if (!Vec_Ismemeber(nleavesNew, fanintemp)) {
+            //         ismem = false;
+            //         break;
+            //     }
+            // }
+            if ( ismem ) {
+                int covernum = If_ManLayerCoverNumKL(Fanouts, nleavesCopy);
+                if ( covernumax < covernum ) {
+                    covernumax = covernum;
+                    klcutIndex = j;
+                }
+            }
+        }
+        Vec_Ptr_t *BestKLCut = Vec_PtrAlloc(0);
+        BestKLCut = (Vec_Ptr_t *)pObj->vKLCut->pArray[klcutIndex];
+        Vec_Ptr_t * Fanouts = FanoutCount(p, BestKLCut);
+
+        if (Fanouts->nSize > 1) {
+            // print
+            printf("\nThe nodes for current node %d is: ", pObj->Id);
+            for (int j = 0; j < BestKLCut->nSize; j++) {
+                printf("%d ", *(int *)BestKLCut->pArray[j]);
+            }
+            printf("\n");
+            printf("The fanouts for current node %d is: ", pObj->Id);
+            for (int j = 0; j < Fanouts->nSize; j++) {
+                printf("%d ", *(int *)Fanouts->pArray[j]);
+            }
+            printf("\n");
+        }
+
+        // copy the best KL cut to all fanout nodes in this cut
+        for (int j = 0; j < Fanouts->nSize; j++) {
+            int nodetemp = *(int *)Fanouts->pArray[j];
+            auto *pObjFanout = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+            Vec_PtrCopy(pObjFanout->vBestKLCut, BestKLCut);
+            Vec_PtrCopy(pObjFanout->vBestKLFanins, FaninCount(p, BestKLCut));
+            Vec_PtrCopy(pObjFanout->vBestKLFanouts, FanoutCount(p, BestKLCut));
+
+            // mark the node has been set
+            pObjFanout->fVisit = 1;
+            // reduce the covered node in nleavesCopy
+            for (int k = 0; k < nleavesCopy->nSize; k++) {
+                if (*(int *)nleavesCopy->pArray[k] == nodetemp)
+                    Vec_PtrRemove(nleavesCopy, (int *)nleavesCopy->pArray[k]);
+            }
+        }
+
+        // update the leaves for next layer
+        Vec_Ptr_t * Fanins = FaninCount(p, BestKLCut);
+        for (int j = 0; j < Fanins->nSize; j++) {
+            int nodetemp = *(int *)Fanins->pArray[j];
+            auto *pObjFanin = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+            if (pObjFanin->Type == 4)
+                Vec_PtrPush(nleavesUpdate, &pObjFanin->Id);
+        }
+
+        if ( nleavesCopy->nSize == 0 ) { break; }
+    }
+
+    if (nleavesUpdate->nSize > 0)
+        If_LayerBasedExpand( p, nleavesUpdate, maxFanin, maxFanout );
+}
+
 ////////////////////////////////////////////////////////////////////////
 ///                       END OF FILE                                ///
 ////////////////////////////////////////////////////////////////////////

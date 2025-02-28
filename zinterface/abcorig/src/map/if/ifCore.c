@@ -201,14 +201,27 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define data transform************************/
-    //If_TransandSort(p);
-    If_NearCutEnuRec(p, 6, 3);
+    If_TransandSort(p);
+    // If_NearCutEnuRec(p, 6, 3);
+
+    /***********************user define ayer based expanding******************/
+    Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
+    //collect the first layer leaves from fanouts
+    If_ManForEachCo( p, pObj, i ) {
+        if (pObj->pFanin0->vBestKLFanins != NULL) {
+            for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
+                Vec_PtrPushUnique(nleaves, &pObj->pFanin0->Id);
+            }
+        }
+    }
+    If_ManCleanMarkV(p);
+    If_LayerBasedExpand(p, nleaves, 6, 3);
 
     /***********************user define network reforming************************/
     // bottom-down reforming
     // this process will choose the single best KL-Cut for each node
     // use the layer by layer
-    Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
+    nleaves = Vec_PtrAlloc(0);
     //collect the first layer leaves from fanouts
     If_ManForEachCo( p, pObj, i ) {
         if (pObj->pFanin0->vBestKLFanins != NULL) {
@@ -243,16 +256,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
         }
     }
 
-    /***********************user define rec combine*************************/
-    // Vec_Ptr_t *ntopnodes = Vec_PtrAlloc(0);
-    // // collect the first layer leaves from fanouts
-    // If_ManForEachCo( p, pObj, i ) {
-    //     Vec_PtrPushUnique(ntopnodes, &pObj->pFanin0->Id);
-    // }
-    // Vec_PtrSort(ntopnodes, NULL);
-    // selectedCuts = Vec_PtrAlloc(0);
-    // int levelnodes = 0; Vec_Ptr_t *coverednodes = Vec_PtrAlloc(0);
-    // If_ManSelRecTopNodes(p, ntopnodes, selectedCuts, levelnodes, coverednodes, 1);
     /***********************user define leaf cuts combine*******************/
     /*combine the cuts with the same fanout*/
     If_FaninCutComb(p, 6, 3);
