@@ -1798,9 +1798,11 @@ void If_CutFanoutVec(If_Man_t* p) {
         }
     }
 
+    printf("The fanout process: ");
     If_ManForEachObj(p, pObx, x) {
         if (pObx == NULL) continue;
         int currNodeId = pObx->Id;
+        printf("%d ", currNodeId);
         If_ManForEachObj(p, pOby, y) {
             if (pOby == NULL) continue;
             int possFanin0Id = (pOby->pFanin0 != NULL) ? pOby->pFanin0->Id : -1;

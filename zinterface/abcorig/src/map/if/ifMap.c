@@ -507,15 +507,15 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
         // insert the cut into storage
         If_CutSort( p, pCutSet, pCut );
 //        If_CutTraverse( p, pObj, pCut );
-        printf("The node %d's leaves: ", pObj->Id);
-        for (int kk = 0; kk < pCut->nLeaves; kk++) {
-            printf("%d ", pCut->pLeaves[kk]);
-        }
-        printf("\n");
-        printf("The node area: %f\n", pCut->Area);
-        printf("The node delay: %f\n", pCut->Delay);
-        printf("The node edge: %f\n", pCut->Edge);
-        printf("The node nleaves: %d\n", pCut->nLeaves);
+        // printf("The node %d's leaves: ", pObj->Id);
+        // for (int kk = 0; kk < pCut->nLeaves; kk++) {
+        //     printf("%d ", pCut->pLeaves[kk]);
+        // }
+        // printf("\n");
+        // printf("The node area: %f\n", pCut->Area);
+        // printf("The node delay: %f\n", pCut->Delay);
+        // printf("The node edge: %f\n", pCut->Edge);
+        // printf("The node nleaves: %d\n", pCut->nLeaves);
     } 
     assert( pCutSet->nCuts > 0 );
 //    If_CutVerifyCuts( pCutSet, !p->pPars->fUseTtPerm );

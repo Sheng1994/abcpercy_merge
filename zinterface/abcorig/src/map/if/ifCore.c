@@ -202,7 +202,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     /***********************user define data transform************************/
     If_TransandSort(p);
-    // If_NearCutEnuRec(p, 6, 3);
+    If_NearCutEnuRec(p, 6, 3);
 
     /***********************user define ayer based expanding******************/
     Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
@@ -215,7 +215,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
         }
     }
     If_ManCleanMarkV(p);
-    If_LayerBasedExpand(p, nleaves, 6, 3);
+    If_LayerBasedExpand(p, nleaves, 6, 2);
 
     /***********************user define network reforming************************/
     // bottom-down reforming
@@ -235,7 +235,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
     /*type-1: side fanout add*/
     /*type-2: KL-cut rec regeneration*/
-    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 3);
+    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 2);
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {
@@ -258,12 +258,29 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     /***********************user define leaf cuts combine*******************/
     /*combine the cuts with the same fanout*/
-    If_FaninCutComb(p, 6, 3);
+    If_FaninCutComb(p, 6, 2);
+
+    /************************user define filter**********************************/
+    If_ManForEachNode( p, pObj, i ) {
+        // if a node cut has 6 inputs and dual outputs, reset it to the original abc cut
+        If_ManLeafDev(p, pObj);
+        if (pObj->vBestKLFanins->nSize == 6 && pObj->vBestKLFanouts->nSize > 1) {
+            pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
+            Vec_PtrClear(pObj->vBestKLFanins);
+            for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
+                int currentNodeIndex = pObj->CutBest.pLeaves[j];
+                If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
+                Vec_PtrPushUnique(pObj->vBestKLFanins, &currentNode->Id);
+            }
+            Vec_PtrClear(pObj->vBestKLFanouts);
+            Vec_PtrPushUnique(pObj->vBestKLFanouts, &pObj->Id);
+        }
+    }
 
     /****************************Print*******************************/
-    If_ManForEachNode( p, pObj, i ) {
-        If_ManpObjPrint( p, pObj );
-    }
+    // If_ManForEachNode( p, pObj, i ) {
+    //     If_ManpObjPrint( p, pObj );
+    // }
 
     If_ManForEachNode( p, pObj, i ) {
         printf("Leaves for pFain0 of node %d:", pObj->Id);
