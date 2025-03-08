@@ -202,7 +202,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     /***********************user define data transform************************/
     If_TransandSort(p);
-    If_NearCutEnuRec(p, 6, 3);
+    // If_NearCutEnuRec(p, 6, 2);
 
     /***********************user define ayer based expanding******************/
     Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
@@ -259,6 +259,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     /***********************user define leaf cuts combine*******************/
     /*combine the cuts with the same fanout*/
     If_FaninCutComb(p, 6, 2);
+    If_FanoutCutComb(p, 6, 2);
 
     /************************user define filter**********************************/
     If_ManForEachNode( p, pObj, i ) {

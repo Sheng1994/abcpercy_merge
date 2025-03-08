@@ -2722,6 +2722,15 @@ int If_ManCoverNumKL( If_Obj_t *leafObj, Vec_Ptr_t *nleaves) {
     return covernum;
 }
 
+void If_ManDeepSet( If_Man_t *p, Vec_Ptr_t *Vec1, Vec_Ptr_t *Vec2) {
+    // Vec_PtrClear(Vec1);
+    for (int i = 0; i < Vec2->nSize; i++) {
+        int nodetemp = *(int *)Vec2->pArray[i];
+        auto *currentNode = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp);
+        Vec_PtrPushUnique(Vec1, &currentNode->Id);
+    }
+}
+
 void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int levelleaf,
     Vec_Ptr_t *coveredLeaves, int type, int maxfanin, int maxfanout) {
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
@@ -2773,24 +2782,88 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
             // printf("Need \n");
         }
         printf("Reduced leaves of level %d with node number %d\n", levelleaf++, selectedCuts->nSize);
-        // update the nleaves based on current selections
-        // for (int i = 0; i < selectedCuts->nSize; i++) {
-        //     auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
-        //     if (tempObj->Type == 4) {
-        //         for (int j = 0; j < tempObj->vBestKLFanins->nSize; j++) {
-        //             int tempId = *(int *)tempObj->vBestKLFanins->pArray[j];
-        //             if (!Vec_Ismemeber(coveredLeaves, tempId))
-        //                 Vec_PtrPushUnique(nleaves, &tempId);
-        //         }
-        //     }
-        // }
+
+        /****************************same layer cut merging*****************************/
+        If_ManCleanMarkV(p);
         for (int i = 0; i < selectedCuts->nSize; i++) {
-            auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
-            if (tempObj->Type == 4) {
-                if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
-                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
-                if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
-                    Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+            int nodetemp1 = *(int *)selectedCuts->pArray[i];
+            auto *currentNode1 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp1);
+            if (currentNode1->fVisit == 1) {continue;}
+            Vec_Ptr_t *combinefanins = Vec_PtrAlloc(0);
+            Vec_Ptr_t *combinefanouts = Vec_PtrAlloc(0);
+            // Vec_Ptr_t *combinenodes = Vec_PtrAlloc(0);
+            for (int j = i+1; j < selectedCuts->nSize; j++) {
+                int nodetemp2 = *(int *)selectedCuts->pArray[j];
+                auto *currentNode2 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp2);
+                if (currentNode2->fVisit == 1) {continue;}
+                combinefanins = Vec_PtrCombine(currentNode1->vBestKLFanins, currentNode2->vBestKLFanins);
+                combinefanouts = Vec_PtrCombine(currentNode1->vBestKLFanouts, currentNode2->vBestKLFanouts);
+                if (currentNode1->vBestKLFanins->nSize + currentNode2->vBestKLFanins->nSize > combinefanins->nSize) {
+                    if (combinefanins->nSize <= maxfanin && combinefanouts->nSize <= maxfanout) {
+                        // combinenodes = Vec_PtrCombine(currentNode1->vBestKLCut, currentNode2->vBestKLCut);
+                        // If_ManDeepSet(p, currentNode1->vBestKLCut, combinenodes);
+                        // If_ManDeepSet(p, currentNode2->vBestKLCut, combinenodes);
+                        // If_ManDeepSet(p, currentNode1->vBestKLFanins, combinefanins);
+                        // If_ManDeepSet(p, currentNode2->vBestKLFanins, combinefanins);
+                        If_ManDeepSet(p, currentNode1->vBestKLFanouts, combinefanouts);
+                        If_ManDeepSet(p, currentNode2->vBestKLFanouts, combinefanouts);
+                        currentNode1->fVisit = 1;
+                        currentNode2->fVisit = 1;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < selectedCuts->nSize; i++) {
+            int nodetemp1 = *(int *)selectedCuts->pArray[i];
+            auto *currentNode1 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp1);
+            if (currentNode1->fVisit == 1) {continue;}
+            Vec_Ptr_t *combinefanins = Vec_PtrAlloc(0);
+            Vec_Ptr_t *combinefanouts = Vec_PtrAlloc(0);
+            // Vec_Ptr_t *combinenodes = Vec_PtrAlloc(0);
+            for (int j = i+1; j < selectedCuts->nSize; j++) {
+                int nodetemp2 = *(int *)selectedCuts->pArray[j];
+                auto *currentNode2 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp2);
+                if (currentNode2->fVisit == 1) {continue;}
+                combinefanins = Vec_PtrCombine(currentNode1->vBestKLFanins, currentNode2->vBestKLFanins);
+                combinefanouts = Vec_PtrCombine(currentNode1->vBestKLFanouts, currentNode2->vBestKLFanouts);
+                if (combinefanins->nSize <= maxfanin && combinefanouts->nSize <= maxfanout) {
+                    // combinenodes = Vec_PtrCombine(currentNode1->vBestKLCut, currentNode2->vBestKLCut);
+                    // If_ManDeepSet(p, currentNode1->vBestKLCut, combinenodes);
+                    // If_ManDeepSet(p, currentNode2->vBestKLCut, combinenodes);
+                    // If_ManDeepSet(p, currentNode1->vBestKLFanins, combinefanins);
+                    // If_ManDeepSet(p, currentNode2->vBestKLFanins, combinefanins);
+                    If_ManDeepSet(p, currentNode1->vBestKLFanouts, combinefanouts);
+                    If_ManDeepSet(p, currentNode2->vBestKLFanouts, combinefanouts);
+                    currentNode1->fVisit = 1;
+                    currentNode2->fVisit = 1;
+                }
+            }
+        }
+
+        // update the nleaves based on current selections
+        // if the netlists size is large apply rec each layer
+        if (p->vObjs->nSize > 45000) {
+            for (int i = 0; i < selectedCuts->nSize; i++) {
+                auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
+                if (tempObj->Type == 4) {
+                    for (int j = 0; j < tempObj->vBestKLFanins->nSize; j++) {
+                        int tempId = *(int *)tempObj->vBestKLFanins->pArray[j];
+                        if (!Vec_Ismemeber(coveredLeaves, tempId))
+                            Vec_PtrPushUnique(nleaves, &tempId);
+                    }
+                }
+            }
+        } else {
+            // if the netlists size is small apply rec each node
+            for (int i = 0; i < selectedCuts->nSize; i++) {
+                auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
+                if (tempObj->Type == 4) {
+                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin0->Id))
+                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin0->Id);
+                    if (!Vec_Ismemeber(coveredLeaves, tempObj->pFanin1->Id))
+                        Vec_PtrPushUnique(nleaves, &tempObj->pFanin1->Id);
+                }
             }
         }
         If_ManSelRec(p, nleaves, solutions, levelleaf, coveredLeaves, type, maxfanin, maxfanout);
@@ -3038,13 +3111,13 @@ void If_LayerBasedExpand( If_Man_t *p, Vec_Ptr_t *nleaves, int maxFanin, int max
             Vec_Ptr_t * Fanins = FaninCount(p, NodesInCut);
             Vec_Ptr_t * Fanouts = FanoutCount(p, NodesInCut);
             bool ismem = true;
-            // for (int k = 0; k < Fanins->nSize; k++) {
-            //     int fanintemp = *(int *)Fanins->pArray[k];
-            //     if (!Vec_Ismemeber(nleavesNew, fanintemp)) {
-            //         ismem = false;
-            //         break;
-            //     }
-            // }
+            for (int k = 0; k < Fanins->nSize; k++) {
+                int fanintemp = *(int *)Fanins->pArray[k];
+                if (!Vec_Ismemeber(nleavesNew, fanintemp)) {
+                    ismem = false;
+                    break;
+                }
+            }
             if ( ismem ) {
                 int covernum = If_ManLayerCoverNumKL(Fanouts, nleavesCopy);
                 if ( covernumax < covernum ) {
@@ -3102,6 +3175,75 @@ void If_LayerBasedExpand( If_Man_t *p, Vec_Ptr_t *nleaves, int maxFanin, int max
 
     if (nleavesUpdate->nSize > 0)
         If_LayerBasedExpand( p, nleavesUpdate, maxFanin, maxFanout );
+}
+
+void If_FanoutCutComb(If_Man_t *p, int maxfanin, int maxfanout) {
+    Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
+    If_Obj_t * pObj; int i;
+    //collect the first layer leaves from fanouts
+    If_ManForEachCo( p, pObj, i ) {
+        if (pObj->pFanin0->vBestKLFanins != NULL) {
+            for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
+                Vec_PtrPushUnique(nleaves, &pObj->pFanin0->Id);
+            }
+        }
+    }
+    /****************************same layer cut merging*****************************/
+    If_ManCleanMarkV(p);
+    for (int i = 0; i < nleaves->nSize; i++) {
+        int nodetemp1 = *(int *)nleaves->pArray[i];
+        auto *currentNode1 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp1);
+        if (currentNode1->fVisit == 1) {continue;}
+        Vec_Ptr_t *combinefanins = Vec_PtrAlloc(0);
+        Vec_Ptr_t *combinefanouts = Vec_PtrAlloc(0);
+        // Vec_Ptr_t *combinenodes = Vec_PtrAlloc(0);
+        for (int j = i+1; j < nleaves->nSize; j++) {
+            int nodetemp2 = *(int *)nleaves->pArray[j];
+            auto *currentNode2 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp2);
+            if (currentNode2->fVisit == 1) {continue;}
+            combinefanins = Vec_PtrCombine(currentNode1->vBestKLFanins, currentNode2->vBestKLFanins);
+            combinefanouts = Vec_PtrCombine(currentNode1->vBestKLFanouts, currentNode2->vBestKLFanouts);
+            if (currentNode1->vBestKLFanins->nSize + currentNode2->vBestKLFanins->nSize > combinefanins->nSize) {
+                if (combinefanins->nSize <= maxfanin && combinefanouts->nSize <= maxfanout) {
+                    // combinenodes = Vec_PtrCombine(currentNode1->vBestKLCut, currentNode2->vBestKLCut);
+                    // If_ManDeepSet(p, currentNode1->vBestKLCut, combinenodes);
+                    // If_ManDeepSet(p, currentNode2->vBestKLCut, combinenodes);
+                    // If_ManDeepSet(p, currentNode1->vBestKLFanins, combinefanins);
+                    // If_ManDeepSet(p, currentNode2->vBestKLFanins, combinefanins);
+                    If_ManDeepSet(p, currentNode1->vBestKLFanouts, combinefanouts);
+                    If_ManDeepSet(p, currentNode2->vBestKLFanouts, combinefanouts);
+                    currentNode1->fVisit = 1;
+                    currentNode2->fVisit = 1;
+                }
+            }
+        }
+    }
+    for (int i = 0; i < nleaves->nSize; i++) {
+        int nodetemp1 = *(int *)nleaves->pArray[i];
+        auto *currentNode1 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp1);
+        if (currentNode1->fVisit == 1) {continue;}
+        Vec_Ptr_t *combinefanins = Vec_PtrAlloc(0);
+        Vec_Ptr_t *combinefanouts = Vec_PtrAlloc(0);
+        // Vec_Ptr_t *combinenodes = Vec_PtrAlloc(0);
+        for (int j = i+1; j < nleaves->nSize; j++) {
+            int nodetemp2 = *(int *)nleaves->pArray[j];
+            auto *currentNode2 = (If_Obj_t *)Vec_PtrEntry(p->vObjs, nodetemp2);
+            if (currentNode2->fVisit == 1) {continue;}
+            combinefanins = Vec_PtrCombine(currentNode1->vBestKLFanins, currentNode2->vBestKLFanins);
+            combinefanouts = Vec_PtrCombine(currentNode1->vBestKLFanouts, currentNode2->vBestKLFanouts);
+            if (combinefanins->nSize <= maxfanin && combinefanouts->nSize <= maxfanout) {
+                // combinenodes = Vec_PtrCombine(currentNode1->vBestKLCut, currentNode2->vBestKLCut);
+                // If_ManDeepSet(p, currentNode1->vBestKLCut, combinenodes);
+                // If_ManDeepSet(p, currentNode2->vBestKLCut, combinenodes);
+                // If_ManDeepSet(p, currentNode1->vBestKLFanins, combinefanins);
+                // If_ManDeepSet(p, currentNode2->vBestKLFanins, combinefanins);
+                If_ManDeepSet(p, currentNode1->vBestKLFanouts, combinefanouts);
+                If_ManDeepSet(p, currentNode2->vBestKLFanouts, combinefanouts);
+                currentNode1->fVisit = 1;
+                currentNode2->fVisit = 1;
+            }
+        }
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////

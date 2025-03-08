@@ -1252,6 +1252,15 @@ inline int Vec_Ismemeber(Vec_Ptr_t *vNodesInCut,int numtemp) {
     return 0;
 }
 
+static inline Vec_Ptr_t * Vec_PtrCombine(Vec_Ptr_t *Vec1,Vec_Ptr_t *Vec2) {
+    Vec_Ptr_t *VecComb = Vec_PtrAlloc(0);
+    Vec_PtrCopy( VecComb, Vec1 );
+    for (int i = 0; i < Vec_PtrSize(Vec2); i++) {
+        Vec_PtrPushUnique(VecComb, Vec2->pArray[i]);
+    }
+    return VecComb;
+}
+
 ABC_NAMESPACE_HEADER_END
 
 #endif
