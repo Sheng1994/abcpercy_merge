@@ -470,8 +470,9 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
     LineLength  = 6;
     NameCounter = 0;
 
+    /*****************user define sort*****************/
     // sort the fanin
-    Vec_IntSort(&pNode->vFanins, NULL);
+    // Vec_IntSort(&pNode->vFanins, NULL);
 
     Abc_ObjForEachFanin( pNode, pNet, i )
     {

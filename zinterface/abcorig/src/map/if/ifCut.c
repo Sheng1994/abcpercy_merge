@@ -2855,7 +2855,7 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
                 }
             }
         } else {
-            // if the netlists size is small apply rec each node
+            // if the netlists size is small apply rec each nodee
             for (int i = 0; i < selectedCuts->nSize; i++) {
                 auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
                 if (tempObj->Type == 4) {
