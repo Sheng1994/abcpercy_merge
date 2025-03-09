@@ -283,7 +283,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
     //     If_ManpObjPrint( p, pObj );
     // }
 
-    If_ManForEachNode( p, pObj, i ) {
+    /*If_ManForEachNode( p, pObj, i ) {
+    /*If_ManForEachNode( p, pObj, i ) {
         printf("Leaves for pFain0 of node %d:", pObj->Id);
         if (pObj->pFanin0->Type == 4)
             for (int i = 0; i<pObj->pFanin0->vBestKLFanins->nSize; i++) {
@@ -317,7 +318,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
         else
             printf("PI");
         printf("\n\n");
-    }
+    }*/
 
     /***********************user define KL data transform************************/
     // transform the KL cut data to standard data format

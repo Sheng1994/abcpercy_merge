@@ -2457,6 +2457,14 @@ void If_TransandSort(If_Man_t* p) {
             pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
             pObj->vBestKLFanins = Vec_PtrAlloc(0);
             pObj->vBestKLFanins = FaninCount(p, pObj->vBestKLCut);
+            if (pObj->vBestKLFanins->nSize > pObj->CutBest.nLeaves) {
+                pObj->vBestKLFanins = Vec_PtrAlloc(0);
+                for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
+                    int pNum = pObj->CutBest.pLeaves[j];
+                    auto *CurrNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, pNum);
+                    Vec_PtrPushUnique(pObj->vBestKLFanins, &CurrNode->Id);
+                }
+            }
             pObj->vBestKLFanouts = Vec_PtrAlloc(0);
             // If_Cut_t *pCutTemp = &pObj->CutBest;
             // If_CutDAG(p, pCutTemp);
