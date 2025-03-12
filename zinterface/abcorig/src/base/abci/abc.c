@@ -20719,6 +20719,34 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
             return 0;
         }
     }
+
+    /**************************user define abc network merging***************************/
+    Abc_Obj_t * pObj1; Abc_Obj_t * pObj2; int i; int j;
+    Abc_NtkForEachNode(pNtkRes, pObj1, i) {
+        if (pObj1->vCoRoots.nSize == 1 ) {
+            Abc_NtkForEachNode(pNtkRes, pObj2, j) {
+                if (pObj2->vCoRoots.nSize == 1 ) {
+                    Vec_Int_t *mergenodes = Vec_IntAlloc( 16 );
+                    Vec_IntClear(mergenodes);
+                    for (int p = 0; p < pObj1->vFanins.nSize; p++) {
+                        Vec_IntPushUnique(mergenodes, pObj1->vFanins.pArray[p]);
+                    }
+                    for (int p = 0; p < pObj2->vFanins.nSize; p++) {
+                        Vec_IntPushUnique(mergenodes, pObj2->vFanins.pArray[p]);
+                    }
+                    if (mergenodes->nSize <= 6) {
+                        Vec_IntClear(&pObj1->vCoRoots); Vec_IntClear(&pObj2->vCoRoots);
+                        Vec_IntPushUnique(&pObj1->vCoRoots, pObj1->Id);
+                        Vec_IntPushUnique(&pObj1->vCoRoots, pObj2->Id);
+                        Vec_IntPushUnique(&pObj2->vCoRoots, pObj1->Id);
+                        Vec_IntPushUnique(&pObj2->vCoRoots, pObj2->Id);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     // replace the current network
     Abc_FrameReplaceCurrentNetwork( pAbc, pNtkRes );
     return 0;

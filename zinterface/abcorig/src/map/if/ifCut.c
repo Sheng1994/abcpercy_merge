@@ -3178,6 +3178,13 @@ void If_LayerBasedExpand( If_Man_t *p, Vec_Ptr_t *nleaves, int maxFanin, int max
                 Vec_PtrPush(nleavesUpdate, &pObjFanin->Id);
         }
 
+        // if (pObj->Type == 4) {
+        //     if (pObj->pFanin0->Type == 4)
+        //         Vec_PtrPushUnique(nleavesUpdate, &pObj->pFanin0->Id);
+        //     if (pObj->pFanin1->Type == 4)
+        //         Vec_PtrPushUnique(nleavesUpdate, &pObj->pFanin1->Id);
+        // }
+
         if ( nleavesCopy->nSize == 0 ) { break; }
     }
 

@@ -46,7 +46,7 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
 {
     memset( pPars, 0, sizeof(If_Par_t) );
     pPars->nLutSize    = -1;
-    pPars->nCutsMax    =  8;
+    pPars->nCutsMax    =  32;
     pPars->nFlowIters  =  1;
     pPars->nAreaIters  =  2;
     pPars->DelayTarget = -1;
@@ -262,21 +262,21 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_FanoutCutComb(p, 6, 2);
 
     /************************user define filter**********************************/
-    If_ManForEachNode( p, pObj, i ) {
-        // if a node cut has 6 inputs and dual outputs, reset it to the original abc cut
-        If_ManLeafDev(p, pObj);
-        if (pObj->vBestKLFanins->nSize == 6 && pObj->vBestKLFanouts->nSize > 1) {
-            pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
-            Vec_PtrClear(pObj->vBestKLFanins);
-            for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
-                int currentNodeIndex = pObj->CutBest.pLeaves[j];
-                If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
-                Vec_PtrPushUnique(pObj->vBestKLFanins, &currentNode->Id);
-            }
-            Vec_PtrClear(pObj->vBestKLFanouts);
-            Vec_PtrPushUnique(pObj->vBestKLFanouts, &pObj->Id);
-        }
-    }
+    // If_ManForEachNode( p, pObj, i ) {
+    //     // if a node cut has 6 inputs and dual outputs, reset it to the original abc cut
+    //     If_ManLeafDev(p, pObj);
+    //     if (pObj->vBestKLFanins->nSize == 6 && pObj->vBestKLFanouts->nSize > 1) {
+    //         pObj->vBestKLCut = pObj->CutBest.vNodesInCut;
+    //         Vec_PtrClear(pObj->vBestKLFanins);
+    //         for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
+    //             int currentNodeIndex = pObj->CutBest.pLeaves[j];
+    //             If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
+    //             Vec_PtrPushUnique(pObj->vBestKLFanins, &currentNode->Id);
+    //         }
+    //         Vec_PtrClear(pObj->vBestKLFanouts);
+    //         Vec_PtrPushUnique(pObj->vBestKLFanouts, &pObj->Id);
+    //     }
+    // }
 
     /****************************Print*******************************/
     // If_ManForEachNode( p, pObj, i ) {
