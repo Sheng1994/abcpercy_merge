@@ -206,16 +206,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     /***********************user define ayer based expanding******************/
     Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
-    //collect the first layer leaves from fanouts
-    If_ManForEachCo( p, pObj, i ) {
-        if (pObj->pFanin0->vBestKLFanins != NULL) {
-            for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
-                Vec_PtrPushUnique(nleaves, &pObj->pFanin0->Id);
-            }
-        }
-    }
-    If_ManCleanMarkV(p);
-    If_LayerBasedExpand(p, nleaves, 6, 2);
 
     /***********************user define network reforming************************/
     // bottom-down reforming
@@ -236,6 +226,17 @@ int If_ManPerformMappingComb( If_Man_t * p )
     /*type-1: side fanout add*/
     /*type-2: KL-cut rec regeneration*/
     If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 2);
+
+    //collect the first layer leaves from fanouts
+    If_ManForEachCo( p, pObj, i ) {
+        if (pObj->pFanin0->vBestKLFanins != NULL) {
+            for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
+                Vec_PtrPushUnique(nleaves, &pObj->pFanin0->Id);
+            }
+        }
+    }
+    If_ManCleanMarkV(p);
+    If_LayerBasedExpand(p, nleaves, 6, 2);
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {

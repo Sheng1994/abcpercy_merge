@@ -2330,7 +2330,7 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
     // auto *CoObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) pObj->vFanouts->pArray[0]);
 
     // only satisfy the IO limit will continue the recursive
-    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 20) {
+    if (faninCount <= maxFanin && fanoutCount <= maxFanout && pObj->vKLCut->nSize < 64) {
         // add the current satisfied cut into vKLCut
         // make sure the NodesInCut is not repeated in vKLCut
         int ifcontinue = pObj->vKLCut->nSize==0 || !vKLCutRepeated(pObj, NodesInCut);
