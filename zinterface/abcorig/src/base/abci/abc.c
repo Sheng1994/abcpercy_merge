@@ -20722,28 +20722,73 @@ int Abc_CommandIf( Abc_Frame_t * pAbc, int argc, char ** argv )
 
     /**************************user define abc network merging***************************/
     Abc_Obj_t * pObj1; Abc_Obj_t * pObj2; int i; int j;
+    // Abc_NtkForEachNode(pNtkRes, pObj1, i) {
+    //     if (pObj1->vCoRoots.nSize == 1 ) {
+    //         Abc_NtkForEachNode(pNtkRes, pObj2, j) {
+    //             if (pObj2->vCoRoots.nSize == 1 ) {
+    //                 Vec_Int_t *mergenodes = Vec_IntAlloc( 16 );
+    //                 Vec_IntClear(mergenodes);
+    //                 for (int p = 0; p < pObj1->vFanins.nSize; p++) {
+    //                     Vec_IntPushUnique(mergenodes, pObj1->vFanins.pArray[p]);
+    //                 }
+    //                 for (int p = 0; p < pObj2->vFanins.nSize; p++) {
+    //                     Vec_IntPushUnique(mergenodes, pObj2->vFanins.pArray[p]);
+    //                 }
+    //                 if (mergenodes->nSize <= 5) {
+    //                     Vec_IntClear(&pObj1->vCoRoots); Vec_IntClear(&pObj2->vCoRoots);
+    //                     Vec_IntPushUnique(&pObj1->vCoRoots, pObj1->Id);
+    //                     Vec_IntPushUnique(&pObj1->vCoRoots, pObj2->Id);
+    //                     Vec_IntPushUnique(&pObj2->vCoRoots, pObj1->Id);
+    //                     Vec_IntPushUnique(&pObj2->vCoRoots, pObj2->Id);
+    //                     break;
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
     Abc_NtkForEachNode(pNtkRes, pObj1, i) {
-        if (pObj1->vCoRoots.nSize == 1 ) {
-            Abc_NtkForEachNode(pNtkRes, pObj2, j) {
-                if (pObj2->vCoRoots.nSize == 1 ) {
-                    Vec_Int_t *mergenodes = Vec_IntAlloc( 16 );
-                    Vec_IntClear(mergenodes);
-                    for (int p = 0; p < pObj1->vFanins.nSize; p++) {
-                        Vec_IntPushUnique(mergenodes, pObj1->vFanins.pArray[p]);
-                    }
-                    for (int p = 0; p < pObj2->vFanins.nSize; p++) {
-                        Vec_IntPushUnique(mergenodes, pObj2->vFanins.pArray[p]);
-                    }
-                    if (mergenodes->nSize <= 6) {
-                        Vec_IntClear(&pObj1->vCoRoots); Vec_IntClear(&pObj2->vCoRoots);
-                        Vec_IntPushUnique(&pObj1->vCoRoots, pObj1->Id);
-                        Vec_IntPushUnique(&pObj1->vCoRoots, pObj2->Id);
-                        Vec_IntPushUnique(&pObj2->vCoRoots, pObj1->Id);
-                        Vec_IntPushUnique(&pObj2->vCoRoots, pObj2->Id);
-                        break;
-                    }
-                }
+        if (pObj1->vCoRoots.nSize != 1) {
+            continue;  // Skip if pObj1's vCoRoots size is not 1
+        }
+
+        Abc_NtkForEachNode(pNtkRes, pObj2, j) {
+            if (pObj2->vCoRoots.nSize != 1) {
+                continue;  // Skip if pObj2's vCoRoots size is not 1
             }
+
+            // Use a temporary array to avoid reallocating memory multiple times
+            // Allocate a set-like structure to track unique fanins
+            Vec_Int_t *mergenodes = Vec_IntAlloc(16);
+
+            // Adding pObj1's fanins to the mergenodes
+            for (int p = 0; p < pObj1->vFanins.nSize; p++) {
+                Vec_IntPushUnique(mergenodes, pObj1->vFanins.pArray[p]);
+            }
+
+            // Adding pObj2's fanins to the mergenodes
+            for (int p = 0; p < pObj2->vFanins.nSize; p++) {
+                Vec_IntPushUnique(mergenodes, pObj2->vFanins.pArray[p]);
+            }
+
+            // If the merged nodes are fewer than or equal to 5, merge the nodes
+            if (mergenodes->nSize <= 5) {
+                // Clear the previous connections and create a new merged one
+                Vec_IntClear(&pObj1->vCoRoots);
+                Vec_IntClear(&pObj2->vCoRoots);
+
+                // Push the nodes into each other's vCoRoots
+                Vec_IntPushUnique(&pObj1->vCoRoots, pObj1->Id);
+                Vec_IntPushUnique(&pObj1->vCoRoots, pObj2->Id);
+                Vec_IntPushUnique(&pObj2->vCoRoots, pObj1->Id);
+                Vec_IntPushUnique(&pObj2->vCoRoots, pObj2->Id);
+
+                // No need to continue after merging once
+                break;
+            }
+
+            // Free memory after use
+            Vec_IntFree(mergenodes);
         }
     }
 

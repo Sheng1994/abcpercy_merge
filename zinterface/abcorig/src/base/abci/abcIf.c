@@ -94,6 +94,7 @@ void If_ManComputeSwitching( If_Man_t * pIfMan )
 }
 
 void If_CutFanoutVec(If_Man_t * if_man);
+void If_AbcCutFanoutVec(If_Man_t * if_man, Abc_Ntk_t * p_ntk);
 
 /**Function*************************************************************
 
@@ -166,6 +167,7 @@ Abc_Ntk_t * Abc_NtkIf( Abc_Ntk_t * pNtk, If_Par_t * pPars )
     /****************user define******************/
     // Generate the fanout information
     If_CutFanoutVec(pIfMan);
+    //If_AbcCutFanoutVec(pIfMan, pNtk);
 
     // perform FPGA mapping
     if ( !If_ManPerformMapping( pIfMan ) )

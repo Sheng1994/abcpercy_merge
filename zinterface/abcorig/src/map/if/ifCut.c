@@ -18,8 +18,11 @@
 
 ***********************************************************************/
 
+#include <base/abc/abc.h>
+
 #include "if.h"
 #include "../../../../../zinterface/cnf_gen.cpp"
+#include <unordered_map>
 
 ABC_NAMESPACE_IMPL_START
 
@@ -1785,7 +1788,7 @@ void If_CutNodesMerge(If_Cut_t* pCut0, If_Cut_t* pCut1, If_Cut_t* pCut)
   Synopsis    [Find each node's fanouts]
 
 ***********************************************************************/
-void If_CutFanoutVec(If_Man_t* p) {
+/*void If_CutFanoutVec(If_Man_t* p) {
 
     If_Obj_t * pObx;
     If_Obj_t * pOby;
@@ -1797,6 +1800,7 @@ void If_CutFanoutVec(If_Man_t* p) {
             pOby->vFanouts = Vec_PtrAlloc(100); // Allocate once per object
         }
     }
+
 
     printf("The fanout process: ");
     If_ManForEachObj(p, pObx, x) {
@@ -1824,6 +1828,81 @@ void If_CutFanoutVec(If_Man_t* p) {
     //     }
     //     printf("\n");
     // }
+}*/
+
+void If_CutFanoutVec(If_Man_t* p) {
+    If_Obj_t* pObx;
+    If_Obj_t* pOby;
+    int x, y;
+
+    // Use a hash map to store the objects by their fanin ids
+    std::unordered_map<int, If_Obj_t*> faninMap;
+
+    // Initialize fanouts vector for each object
+    If_ManForEachObj(p, pOby, x) {
+        if (pOby->vFanouts == NULL) {
+            pOby->vFanouts = Vec_PtrAlloc(100);  // Pre-allocate vector
+        }
+    }
+
+    printf("The fanout process: ");
+
+    // First pass: Build the fanin map (id -> object) for fast lookups
+    If_ManForEachObj(p, pObx, x) {
+        if (pObx == NULL) continue;
+
+        int currNodeId = pObx->Id;
+        printf("%d ", currNodeId);
+
+        // Add the current object to the fanin map
+        faninMap[currNodeId] = pObx;
+    }
+
+    // Second pass: Check fanins for each object and update fanouts
+    If_ManForEachObj(p, pOby, y) {
+        if (pOby == NULL) continue;
+
+        int possFanin0Id = (pOby->pFanin0 != NULL) ? pOby->pFanin0->Id : -1;
+        int possFanin1Id = (pOby->pFanin1 != NULL) ? pOby->pFanin1->Id : -1;
+
+        // Check if either fanin matches a node and push to fanout vector
+        if (faninMap.find(possFanin0Id) != faninMap.end()) {
+            Vec_PtrPush(faninMap[possFanin0Id]->vFanouts, &pOby->Id);
+        }
+        if (faninMap.find(possFanin1Id) != faninMap.end()) {
+            Vec_PtrPush(faninMap[possFanin1Id]->vFanouts, &pOby->Id);
+        }
+    }
+
+    // Optionally print the fanouts for verification
+    // For now, skipping the print loop to keep things focused
+}
+
+void If_AbcCutFanoutVec(If_Man_t* pIfMan, Abc_Ntk_t * pNtk) {
+    Abc_Obj_t * pNode; int i;
+    // Abc_NtkForEachNode(pNtkTemp, pNode1, i) pNode1->fMarker = false;
+    Abc_NtkForEachObj(pNtk, pNode, i) {
+        Vec_Int_t vFanouts = pNode->vFanouts;
+        If_Obj_t *pObjIf = (If_Obj_t *) Vec_PtrEntry(pIfMan->vObjs, i);
+        for (int j = 0; j <pNode->vFanouts.nSize; j++) {
+            int nodetemp = vFanouts.pArray[j];
+            If_Obj_t *CurrNode = (If_Obj_t *) Vec_PtrEntry(pIfMan->vObjs, nodetemp);
+            if (pObjIf->vFanouts == NULL) {pObjIf->vFanouts = Vec_PtrAlloc(100);}
+            Vec_PtrPushUnique(pObjIf->vFanouts, &CurrNode->Id);
+        }
+    }
+    // print the fanout node Id
+
+    If_Obj_t * pOby; int x;
+    If_ManForEachObj(pIfMan, pOby, x) {
+        printf("The node %d has fanouts: ");
+        if (pOby->vFanouts != NULL) {
+            for (i = 0; i < pOby->vFanouts->nSize; i++) {
+                printf("%d ", *(int *)pOby->vFanouts->pArray[i]);
+            }
+        }
+        printf("\n");
+    }
 }
 
 /**Function*************************************************************
@@ -2337,7 +2416,7 @@ void  If_CoreRec(If_Man_t *p, If_Obj_t *pObj, int curr_node, int maxFanin,
         // the first one always with original single fanout
         if (ifcontinue) {
             vKLAdd(p, pObj, NodesInCut);
-            printfff(pObj, NodesInCut);
+            //printfff(pObj, NodesInCut);
             // Vec_Ptr_t * Fanouts = FanoutCount(p, NodesInCut);
             // printf("THe fanouts of this cut is: ");
             // for (int i = 0; i < Fanouts->nSize; i++) {
@@ -2851,7 +2930,7 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
 
         // update the nleaves based on current selections
         // if the netlists size is large apply rec each layer
-        if (p->vObjs->nSize > 45000) {
+        if (p->vObjs->nSize > 15000) {
             for (int i = 0; i < selectedCuts->nSize; i++) {
                 auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[i]);
                 if (tempObj->Type == 4) {
@@ -3071,11 +3150,11 @@ void If_LayerBasedExpand( If_Man_t *p, Vec_Ptr_t *nleaves, int maxFanin, int max
 
     Vec_PtrSort(nleaves, NULL);
 
-    printf("Nodes in current layer: ");
-    for (int i = 0; i < nleaves->nSize; i++) {
-        printf("%d ", *(int *)nleaves->pArray[i]);
-    }
-    printf("\n");
+    // printf("Nodes in current layer: ");
+    // for (int i = 0; i < nleaves->nSize; i++) {
+    //     printf("%d ", *(int *)nleaves->pArray[i]);
+    // }
+    // printf("\n");
 
     // generate the next layer's leaves based on original information
     Vec_Ptr_t *nleavesNew = Vec_PtrAlloc(0);
