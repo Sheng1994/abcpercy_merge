@@ -50,22 +50,6 @@ user define
 * C/C++ compiler (for building ABC from source)
 * Linux or macOS (Windows via WSL)
 
-### Steps
-
-```bash
-# Clone this repository
-git clone https://github.com/yourusername/efficient-lut-mapping.git
-cd efficient-lut-mapping
-
-# Integrate modified files into ABC
-cp -r zinterface/abcorig/src /path/to/abc/src
-
-# Build ABC (if not already built)
-cd /path/to/abc
-make
-```
-
-> ⚠️ Note: Ensure you have write permissions in the ABC source directory.
 
 ---
 
