@@ -50,6 +50,22 @@ user define
 * C/C++ compiler (for building ABC from source)
 * Linux or macOS (Windows via WSL)
 
+### Steps
+
+```bash
+# Clone this repository
+git clone https://github.com/Sheng1994/abcpercy_merge.git
+cd efficient-lut-mapping
+
+# Integrate modified files into ABC
+cp -r zinterface/abcorig/src /path/to/abc/src
+
+# Build ABC (if not already built)
+cd /path/to/abc
+make
+```
+
+> ⚠️ Note: Ensure you have write permissions in the ABC source directory.
 
 ---
 
@@ -91,7 +107,9 @@ CRX2645647  a b c d -> f
 
 ## Theory and Algorithm
 
-For detailed theoretical background and algorithm description, please refer to the publication:
+For detailed theoretical background and algorithm description, please refer to the publication PDF:
+
+[Download PDF](https://www.mdpi.com/2079-9292/14/9/1782/pdf?version=1745754558)
 
 > Lu, S.; Shang, L.; Qu, Q.; Jung, S.; Liang, Q.; Pan, C.
 > "An Efficient Multi-Output LUT Mapping Technique for Field-Programmable Gate Arrays"
@@ -131,3 +149,9 @@ Please submit pull requests or issues for bug fixes, optimizations, or additiona
 ## License
 
 This project is licensed under the [MIT License](https://opensource.org/licenses/MIT).
+
+---
+
+## Contact
+
+For questions or collaborations, please contact: `your.email@example.com`
