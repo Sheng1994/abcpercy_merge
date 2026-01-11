@@ -13,6 +13,10 @@ It improves the **synthesis quality and runtime** of FPGA designs by enhancing t
 
 The modifications target advanced FPGA users and researchers who require **optimized mapping for large-scale Verilog designs**.
 
+*******************************************************************************************************************
+The tool is developped based on the Clion IDE and please update the CMAKE version in the corresponding cmake files.
+*******************************************************************************************************************
+
 ---
 
 ## Features
@@ -45,7 +49,7 @@ user define
 
 ### Requirements
 
-* ABC logic synthesis tool (commit version XXXXX or later)
+* ABC logic synthesis tool
   [ABC GitHub](https://github.com/berkeley-abc/abc)
 * C/C++ compiler (for building ABC from source)
 * Linux or macOS (Windows via WSL)
