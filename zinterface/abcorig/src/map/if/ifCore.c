@@ -19,7 +19,6 @@
 ***********************************************************************/
 
 #include "if.h"
-#include "ifCut.c"
 ////////////////////////////////////////////////////////////////////////
 ///                        DECLARATIONS                              ///
 ////////////////////////////////////////////////////////////////////////
@@ -42,27 +41,27 @@ extern abctime s_MappingTime;
   SeeAlso     []
 
 ***********************************************************************/
-void If_ManSetDefaultPars( If_Par_t * pPars )
+void If_ManSetDefaultPars(If_Par_t* pPars)
 {
-    memset( pPars, 0, sizeof(If_Par_t) );
-    pPars->nLutSize    = -1;
-    pPars->nCutsMax    =  8;
-    pPars->nFlowIters  =  1;
-    pPars->nAreaIters  =  2;
+    memset(pPars, 0, sizeof(If_Par_t));
+    pPars->nLutSize = -1;
+    pPars->nCutsMax = 8;
+    pPars->nFlowIters = 1;
+    pPars->nAreaIters = 2;
     pPars->DelayTarget = -1;
-    pPars->Epsilon     =  (float)0.005;
-    pPars->fPreprocess =  1;
-    pPars->fArea       =  0;
-    pPars->fFancy      =  0;
-    pPars->fExpRed     =  1;
-    pPars->fLatchPaths =  0;
-    pPars->fEdge       =  1;
-    pPars->fPower      =  0;
-    pPars->fCutMin     =  0;
-    pPars->fBidec      =  0;
-    pPars->fUserLutDec =  0;
-    pPars->fUserLut2D  =  0;
-    pPars->fVerbose    =  0;
+    pPars->Epsilon = (float)0.005;
+    pPars->fPreprocess = 1;
+    pPars->fArea = 0;
+    pPars->fFancy = 0;
+    pPars->fExpRed = 1;
+    pPars->fLatchPaths = 0;
+    pPars->fEdge = 1;
+    pPars->fPower = 0;
+    pPars->fCutMin = 0;
+    pPars->fBidec = 0;
+    pPars->fUserLutDec = 0;
+    pPars->fUserLut2D = 0;
+    pPars->fVerbose = 0;
 }
 
 
@@ -77,43 +76,43 @@ void If_ManSetDefaultPars( If_Par_t * pPars )
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManPerformMapping( If_Man_t * p )
+int If_ManPerformMapping(If_Man_t* p)
 {
     // fArea: area-oriented mapping
     p->pPars->fAreaOnly = p->pPars->fArea; // temporary
     // create the CI cutsets
-    If_ManSetupCiCutSets( p );
+    If_ManSetupCiCutSets(p);
     // allocate memory for other cutsets
-    If_ManSetupSetAll( p, If_ManCrossCut(p) );
+    If_ManSetupSetAll(p, If_ManCrossCut(p));
     // derive reverse top order
-    p->vObjsRev = If_ManReverseOrder( p );
-    return If_ManPerformMappingComb( p );
+    p->vObjsRev = If_ManReverseOrder(p);
+    return If_ManPerformMappingComb(p);
 }
 
-void If_ManpObjPrint( If_Man_t * p, If_Obj_t * pObj ) {
+void If_ManpObjPrint(If_Man_t* p, If_Obj_t* pObj) {
     Vec_PtrSort(pObj->CutBest.vNodesInCut, NULL);
     printf("Original LUT of Node %d: ", pObj->Id);
     for (int j = 0; j < pObj->CutBest.vNodesInCut->nSize; j++) {
-        int pNum = *(int *)Vec_PtrEntry(pObj->CutBest.vNodesInCut, j);
+        int pNum = *(int*)Vec_PtrEntry(pObj->CutBest.vNodesInCut, j);
         printf("%d ", pNum);
     }
     // print the best KL Cut fanouts
     printf("\nBest KL Cut fanouts %d: ", pObj->Id);
     for (int j = 0; j < pObj->vBestKLFanouts->nSize; j++) {
-        int pNum = *(int *)Vec_PtrEntry(pObj->vBestKLFanouts, j);
+        int pNum = *(int*)Vec_PtrEntry(pObj->vBestKLFanouts, j);
         printf("%d ", pNum);
     }
     // print the best KL Cut fanins
     printf("\nBest KL Cut fanins %d: ", pObj->Id);
     for (int j = 0; j < pObj->vBestKLFanins->nSize; j++) {
-        int pNum = *(int *)Vec_PtrEntry(pObj->vBestKLFanins, j);
+        int pNum = *(int*)Vec_PtrEntry(pObj->vBestKLFanins, j);
         printf("%d ", pNum);
     }
     // print the best KL Cut
     Vec_PtrSort(pObj->vBestKLCut, NULL);
     printf("\nBest KL Cut of Node %d: ", pObj->Id);
     for (int j = 0; j < pObj->vBestKLCut->nSize; j++) {
-        int pNum = *(int *)Vec_PtrEntry(pObj->vBestKLCut, j);
+        int pNum = *(int*)Vec_PtrEntry(pObj->vBestKLCut, j);
         printf("%d ", pNum);
     }
     int fanoutCount = FanoutCount(p, pObj->vBestKLCut)->nSize;
@@ -143,9 +142,9 @@ void If_ManpObjPrint( If_Man_t * p, If_Obj_t * pObj ) {
   SeeAlso     []
 
 ***********************************************************************/
-int If_ManPerformMappingComb( If_Man_t * p )
+int If_ManPerformMappingComb(If_Man_t* p)
 {
-    If_Obj_t * pObj;
+    If_Obj_t* pObj;
     abctime clkTotal = Abc_Clock();
     int i;
 
@@ -153,51 +152,51 @@ int If_ManPerformMappingComb( If_Man_t * p )
     //p->vMarks = Vec_StrStart( If_ManObjNum(p) );
 
     // set arrival times and fanout estimates
-    If_ManForEachCi( p, pObj, i )
+    If_ManForEachCi(p, pObj, i)
     {
-        If_ObjSetArrTime( pObj, p->pPars->pTimesArr ? p->pPars->pTimesArr[i] : (float)0.0 );
+        If_ObjSetArrTime(pObj, p->pPars->pTimesArr ? p->pPars->pTimesArr[i] : (float)0.0);
         pObj->EstRefs = (float)1.0;
     }
 
     // delay oriented mapping
-    if ( p->pPars->fPreprocess && !p->pPars->fArea )
+    if (p->pPars->fPreprocess && !p->pPars->fArea)
     {
         // map for delay
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 1, "Delay" );
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 0, 1, 1, "Delay");
 
         // map for delay second option
         p->pPars->fFancy = 1;
-        If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Delay-2" );
+        If_ManResetOriginalRefs(p);
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 0, 1, 0, "Delay-2");
         p->pPars->fFancy = 0;
 
         // map for area
         p->pPars->fArea = 1;
-        If_ManResetOriginalRefs( p );
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 1, 0, "Area" );
+        If_ManResetOriginalRefs(p);
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 0, 1, 0, "Area");
         p->pPars->fArea = 0;
     }
     else
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 0, 0, 1, "Delay" );
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 0, 0, 1, "Delay");
 
     // try to improve area by expanding and reducing the cuts
-    if ( p->pPars->fExpRed )
-        If_ManImproveMapping( p );
+    if (p->pPars->fExpRed)
+        If_ManImproveMapping(p);
 
     // area flow oriented mapping
-    for ( i = 0; i < p->pPars->nFlowIters; i++ )
+    for (i = 0; i < p->pPars->nFlowIters; i++)
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 1, 0, 0, "Flow" );
-        if ( p->pPars->fExpRed )
-            If_ManImproveMapping( p );
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 1, 0, 0, "Flow");
+        if (p->pPars->fExpRed)
+            If_ManImproveMapping(p);
     }
 
     // area oriented mapping
-    for ( i = 0; i < p->pPars->nAreaIters; i++ )
+    for (i = 0; i < p->pPars->nAreaIters; i++)
     {
-        If_ManPerformMappingRound( p, p->pPars->nCutsMax, 2, 0, 0, "Area" );
-        if ( p->pPars->fExpRed )
-            If_ManImproveMapping( p );
+        If_ManPerformMappingRound(p, p->pPars->nCutsMax, 2, 0, 0, "Area");
+        if (p->pPars->fExpRed)
+            If_ManImproveMapping(p);
     }
 
     /***********************user define data transform************************/
@@ -205,7 +204,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // If_NearCutEnuRec(p, 6, 2);
 
     /***********************user define ayer based expanding******************/
-    Vec_Ptr_t *nleaves = Vec_PtrAlloc(0);
+    Vec_Ptr_t* nleaves;
 
     /***********************user define network reforming************************/
     // bottom-down reforming
@@ -213,7 +212,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     // use the layer by layer
     nleaves = Vec_PtrAlloc(0);
     //collect the first layer leaves from fanouts
-    If_ManForEachCo( p, pObj, i ) {
+    If_ManForEachCo(p, pObj, i) {
         if (pObj->pFanin0->vBestKLFanins != NULL) {
             for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
                 Vec_PtrPushUnique(nleaves, pObj->pFanin0->vBestKLFanins->pArray[j]);
@@ -221,14 +220,14 @@ int If_ManPerformMappingComb( If_Man_t * p )
         }
     }
     Vec_PtrSort(nleaves, NULL);
-    Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
-    int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
+    Vec_Ptr_t* selectedCuts = Vec_PtrAlloc(0);
+    int levelleaf = 0; Vec_Ptr_t* coveredLeaves = Vec_PtrAlloc(0);
     /*type-1: side fanout add*/
     /*type-2: KL-cut rec regeneration*/
     If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 2);
 
     //collect the first layer leaves from fanouts
-    If_ManForEachCo( p, pObj, i ) {
+    If_ManForEachCo(p, pObj, i) {
         if (pObj->pFanin0->vBestKLFanins != NULL) {
             for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
                 Vec_PtrPushUnique(nleaves, &pObj->pFanin0->Id);
@@ -240,18 +239,19 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     Vec_PtrSort(selectedCuts, NULL);
     for (int j = 0; j < selectedCuts->nSize; j++) {
-        auto *tempObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, *(int *) selectedCuts->pArray[j]);
+        If_Obj_t* tempObj = (If_Obj_t*)Vec_PtrEntry(p->vObjs, *(int*)selectedCuts->pArray[j]);
         Vec_PtrSort(tempObj->vBestKLFanouts, NULL);
         for (int k = 0; k < tempObj->vBestKLFanouts->nSize; k++) {
-            int pNum = *(int *)Vec_PtrEntry(tempObj->vBestKLFanouts, k);
+            int pNum = *(int*)Vec_PtrEntry(tempObj->vBestKLFanouts, k);
             if (Vec_Ismemeber(selectedCuts, pNum)) {
                 continue;
-            } else {
-                auto *coveredObj = (If_Obj_t *)Vec_PtrEntry(p->vObjs, pNum);
+            }
+            else {
+                If_Obj_t* coveredObj = (If_Obj_t*)Vec_PtrEntry(p->vObjs, pNum);
                 if (coveredObj->Type == 4) {
-                    Vec_PtrCopy( coveredObj->vBestKLFanins, tempObj->vBestKLFanins );
-                    Vec_PtrCopy( coveredObj->vBestKLFanouts, tempObj->vBestKLFanouts );
-                    Vec_PtrCopy( coveredObj->vBestKLCut, tempObj->vBestKLCut );
+                    Vec_PtrCopy(coveredObj->vBestKLFanins, tempObj->vBestKLFanins);
+                    Vec_PtrCopy(coveredObj->vBestKLFanouts, tempObj->vBestKLFanouts);
+                    Vec_PtrCopy(coveredObj->vBestKLCut, tempObj->vBestKLCut);
                 }
             }
         }
@@ -263,7 +263,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
     If_FanoutCutComb(p, 6, 2);
 
     /************************user define filter**********************************/
-    If_ManForEachNode( p, pObj, i ) {
+    If_ManForEachNode(p, pObj, i) {
         // if a node cut has 6 inputs and dual outputs, reset it to the original abc cut
         If_ManLeafDev(p, pObj);
         if (pObj->vBestKLFanins->nSize == 6 && pObj->vBestKLFanouts->nSize > 1) {
@@ -271,7 +271,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
             Vec_PtrClear(pObj->vBestKLFanins);
             for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
                 int currentNodeIndex = pObj->CutBest.pLeaves[j];
-                If_Obj_t *currentNode = (If_Obj_t *) Vec_PtrEntry(p->vObjs, currentNodeIndex);
+                If_Obj_t* currentNode = (If_Obj_t*)Vec_PtrEntry(p->vObjs, currentNodeIndex);
                 Vec_PtrPushUnique(pObj->vBestKLFanins, &currentNode->Id);
             }
             Vec_PtrClear(pObj->vBestKLFanouts);
@@ -323,7 +323,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
 
     /***********************user define KL data transform************************/
     // transform the KL cut data to standard data format
-    If_ManForEachNode( p, pObj, i ) {
+    If_ManForEachNode(p, pObj, i) {
         // update the CutBest
         pObj->CutBest.Area = pObj->KLArea;
         pObj->CutBest.Delay = pObj->KLDelay;
@@ -344,7 +344,7 @@ int If_ManPerformMappingComb( If_Man_t * p )
         pObj->CutBest.nLeaves = pObj->vBestKLFanins->nSize;
         // printf("The leaves for current node %d: ", pObj->Id);
         for (int j = 0; j < pObj->CutBest.nLeaves; j++) {
-            pObj->CutBest.pLeaves[j] = *(int *)pObj->vBestKLFanins->pArray[j];
+            pObj->CutBest.pLeaves[j] = *(int*)pObj->vBestKLFanins->pArray[j];
             // printf("%d ", pObj->CutBest.pLeaves[j]);
         }
         // printf("\n");
@@ -356,42 +356,45 @@ int If_ManPerformMappingComb( If_Man_t * p )
         // }
         // printf("\n");
     }
+    Vec_PtrFree(nleaves);
+    Vec_PtrFree(selectedCuts);
+    Vec_PtrFree(coveredLeaves);
 
-    if ( p->pPars->fVerbose )
+    if (p->pPars->fVerbose)
     {
-//        Abc_Print( 1, "Total memory = %7.2f MB. Peak cut memory = %7.2f MB.  ",
-//            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20),
-//            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
-        Abc_PrintTime( 1, "Total time", Abc_Clock() - clkTotal );
+        //        Abc_Print( 1, "Total memory = %7.2f MB. Peak cut memory = %7.2f MB.  ",
+        //            1.0 * (p->nObjBytes + 2*sizeof(void *)) * If_ManObjNum(p) / (1<<20),
+        //            1.0 * p->nSetBytes * Mem_FixedReadMaxEntriesUsed(p->pMemSet) / (1<<20) );
+        Abc_PrintTime(1, "Total time", Abc_Clock() - clkTotal);
     }
-//    Abc_Print( 1, "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
+    //    Abc_Print( 1, "Cross cut memory = %d.\n", Mem_FixedReadMaxEntriesUsed(p->pMemSet) );
     s_MappingTime = Abc_Clock() - clkTotal;
-//    Abc_Print( 1, "Special POs = %d.\n", If_ManCountSpecialPos(p) );
+    //    Abc_Print( 1, "Special POs = %d.\n", If_ManCountSpecialPos(p) );
 
-/*
-    {
-        static char * pLastName = NULL;
-        FILE * pTable = fopen( "fpga/ucsb/stats.txt", "a+" );
-        if ( pLastName == NULL || strcmp(pLastName, p->pName) )
+    /*
         {
-            fprintf( pTable, "\n" );
-            fprintf( pTable, "%s ", p->pName );
+            static char * pLastName = NULL;
+            FILE * pTable = fopen( "fpga/ucsb/stats.txt", "a+" );
+            if ( pLastName == NULL || strcmp(pLastName, p->pName) )
+            {
+                fprintf( pTable, "\n" );
+                fprintf( pTable, "%s ", p->pName );
 
-            fprintf( pTable, "%d ", If_ManCiNum(p) );
-            fprintf( pTable, "%d ", If_ManCoNum(p) );
-            fprintf( pTable, "%d ", If_ManAndNum(p) );
+                fprintf( pTable, "%d ", If_ManCiNum(p) );
+                fprintf( pTable, "%d ", If_ManCoNum(p) );
+                fprintf( pTable, "%d ", If_ManAndNum(p) );
 
-            ABC_FREE( pLastName );
-            pLastName = Abc_UtilStrsav( p->pName );
+                ABC_FREE( pLastName );
+                pLastName = Abc_UtilStrsav( p->pName );
+            }
+
+            fprintf( pTable, "%d ", (int)p->AreaGlo );
+            fprintf( pTable, "%d ", (int)p->RequiredGlo );
+            fclose( pTable );
         }
-
-        fprintf( pTable, "%d ", (int)p->AreaGlo );
-        fprintf( pTable, "%d ", (int)p->RequiredGlo );
-        fclose( pTable );
-    }
-*/
+    */
     p->pPars->FinalDelay = p->RequiredGlo;
-    p->pPars->FinalArea  = p->AreaGlo;
+    p->pPars->FinalArea = p->AreaGlo;
 
     // /******************************user define*****************************/
     p->pPars->nLutSize = 6;
