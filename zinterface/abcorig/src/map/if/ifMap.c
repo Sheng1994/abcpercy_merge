@@ -727,6 +727,12 @@ int If_ManPerformMappingRound( If_Man_t * p, int nCutsUsed, int Mode, int fPrepr
 
     // compute required times and stats
     If_ManComputeRequired( p );
+    if ( !fPreprocess && p->pPars->nLutSize >= 6 )
+    {
+        int nMoGroups = If_ManMultiOutputRound( p, 6, 2 );
+        if ( p->pPars->fVerbose )
+            Abc_Print( 1, "MO groups = %d.  ", nMoGroups );
+    }
 //    Tim_ManPrint( p->pManTim );
     if ( p->pPars->fVerbose )
     {

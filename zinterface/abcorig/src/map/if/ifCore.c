@@ -200,37 +200,8 @@ int If_ManPerformMappingComb( If_Man_t * p )
     }
 
     /***********************user define data transform************************/
+    // Multi-output groups are selected during every non-preprocess mapping round.
     If_TransandSort(p);
-    // If_NearCutEnuRec(p, 6, 2);
-
-    /***********************user define ayer based expanding******************/
-    Vec_Ptr_t *nleaves;
-
-    /***********************user define network reforming************************/
-    // bottom-down reforming
-    // this process will choose the single best KL-Cut for each node
-    // use the layer by layer
-    nleaves = Vec_PtrAlloc(0);
-    //collect the first layer leaves from fanouts
-    If_ManForEachCo( p, pObj, i ) {
-        if (pObj->pFanin0->vBestKLFanins != NULL) {
-            for (int j = 0; j < pObj->pFanin0->vBestKLFanins->nSize; j++) {
-                Vec_PtrPushUnique(nleaves, pObj->pFanin0->vBestKLFanins->pArray[j]);
-            }
-        }
-    }
-    Vec_PtrSort(nleaves, NULL);
-    Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
-    int levelleaf = 0; Vec_Ptr_t *coveredLeaves = Vec_PtrAlloc(0);
-    /*type-1: side fanout add*/
-    /*type-2: KL-cut rec regeneration*/
-    If_ManSelRec(p, nleaves, selectedCuts, levelleaf, coveredLeaves, 1, 6, 2);
-
-    /*
-     * Same-level groups are committed and propagated in If_ManSelRec().
-     * Running the independent layer-expansion/global-merge heuristics here
-     * would overwrite those score-selected groups.
-     */
 
     /****************************Print*******************************/
     // If_ManForEachNode( p, pObj, i ) {
@@ -316,10 +287,6 @@ int If_ManPerformMappingComb( If_Man_t * p )
         Abc_Print( 1, "Multi-output LUT groups = %d. Grouped outputs = %d.\n",
                    nMultiOutputGroups, nGroupedOutputs );
     }
-    Vec_PtrFree( nleaves );
-    Vec_PtrFree( selectedCuts );
-    Vec_PtrFree( coveredLeaves );
-
     if ( p->pPars->fVerbose )
     {
 //        Abc_Print( 1, "Total memory = %7.2f MB. Peak cut memory = %7.2f MB.  ",

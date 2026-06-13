@@ -2828,6 +2828,28 @@ void If_ManDeepSet( If_Man_t *p, Vec_Ptr_t *Vec1, Vec_Ptr_t *Vec2) {
     }
 }
 
+static float If_MoMergedLutArea( If_Man_t * p, int nFanins );
+
+static float If_MoGroupAreaFlow( If_Man_t * p, Vec_Ptr_t * vFanins )
+{
+    If_Obj_t * pFanin;
+    int * pFaninId;
+    int i;
+    float Area = If_MoMergedLutArea( p, Vec_PtrSize(vFanins) );
+    Vec_PtrForEachEntry( int *, vFanins, pFaninId, i )
+    {
+        pFanin = If_ManObj( p, *pFaninId );
+        if ( pFanin == NULL || If_ObjIsConst1(pFanin) )
+            continue;
+        if ( pFanin->nRefs == 0 )
+            Area += If_ObjCutBest(pFanin)->Area;
+        else
+            Area += If_ObjCutBest(pFanin)->Area /
+                    Abc_MaxFloat( pFanin->EstRefs, p->fEpsilon );
+    }
+    return Area;
+}
+
 int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
                               int maxFanin, int maxFanout )
 {
@@ -2836,22 +2858,24 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
     Vec_Ptr_t *vFanouts;
     int *pRootId;
     int i;
+    float GroupArea;
 
     if ( pObj0 == NULL || pObj1 == NULL || pObj0 == pObj1 ||
          pObj0->Type != IF_AND || pObj1->Type != IF_AND ||
          pObj0->vBestKLCut == NULL || pObj1->vBestKLCut == NULL ||
          pObj0->vBestKLFanins == NULL || pObj1->vBestKLFanins == NULL ||
          pObj0->vBestKLFanouts == NULL || pObj1->vBestKLFanouts == NULL ||
-         pObj0->Level != pObj1->Level ||
          Vec_PtrSize(pObj0->vBestKLFanouts) != 1 ||
          Vec_PtrSize(pObj1->vBestKLFanouts) != 1 )
         return 0;
 
     vNodes = Vec_PtrCombine( pObj0->vBestKLCut, pObj1->vBestKLCut );
-    vFanins = FaninCount( p, vNodes );
-    vFanouts = FanoutCount( p, vNodes );
-    if ( Vec_PtrSize(vFanins) > maxFanin || Vec_PtrSize(vFanouts) < 2 ||
-         Vec_PtrSize(vFanouts) > maxFanout )
+    vFanins = Vec_PtrCombine( pObj0->vBestKLFanins, pObj1->vBestKLFanins );
+    vFanouts = Vec_PtrCombine( pObj0->vBestKLFanouts, pObj1->vBestKLFanouts );
+    if ( Vec_PtrSize(vFanins) > maxFanin ||
+         Vec_PtrSize(vFanouts) != maxFanout ||
+         Vec_Ismemeber(vFanins, pObj0->Id) ||
+         Vec_Ismemeber(vFanins, pObj1->Id) )
     {
         Vec_PtrFree( vNodes );
         Vec_PtrFree( vFanins );
@@ -2859,6 +2883,7 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
         return 0;
     }
 
+    GroupArea = If_MoGroupAreaFlow( p, vFanins );
     Vec_PtrForEachEntry( int *, vFanouts, pRootId, i )
     {
         If_Obj_t *pRoot;
@@ -2876,6 +2901,8 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
         If_ManDeepSet( p, pRoot->vBestKLFanouts, vFanouts );
         pRoot->KLLeaves = Vec_PtrSize(vFanins);
         pRoot->KLMerge = 1.0f / Vec_PtrSize(vFanouts);
+        pRoot->KLArea = GroupArea / Vec_PtrSize(vFanouts);
+        pRoot->CutBest.Area = pRoot->KLArea;
     }
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vFanins );
@@ -2928,18 +2955,19 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
          pObj0->vBestKLCut == NULL || pObj1->vBestKLCut == NULL ||
          pObj0->vBestKLFanins == NULL || pObj1->vBestKLFanins == NULL ||
          pObj0->vBestKLFanouts == NULL || pObj1->vBestKLFanouts == NULL ||
-         pObj0->Level != pObj1->Level ||
          Vec_PtrSize(pObj0->vBestKLFanouts) != 1 ||
          Vec_PtrSize(pObj1->vBestKLFanouts) != 1 )
         return -IF_INFINITY;
 
     vNodes = Vec_PtrCombine( pObj0->vBestKLCut, pObj1->vBestKLCut );
-    vFanins = FaninCount( p, vNodes );
-    vFanouts = FanoutCount( p, vNodes );
+    vFanins = Vec_PtrCombine( pObj0->vBestKLFanins, pObj1->vBestKLFanins );
+    vFanouts = Vec_PtrCombine( pObj0->vBestKLFanouts, pObj1->vBestKLFanouts );
     nShared = Vec_PtrSize(pObj0->vBestKLFanins) +
               Vec_PtrSize(pObj1->vBestKLFanins) - Vec_PtrSize(vFanins);
     if ( nShared > 0 && Vec_PtrSize(vFanins) <= maxFanin &&
-         Vec_PtrSize(vFanouts) == maxFanout )
+         Vec_PtrSize(vFanouts) == maxFanout &&
+         !Vec_Ismemeber(vFanins, pObj0->Id) &&
+         !Vec_Ismemeber(vFanins, pObj1->Id) )
     {
         AreaSaving = If_CutLutArea( p, If_ObjCutBest(pObj0) ) +
                      If_CutLutArea( p, If_ObjCutBest(pObj1) ) -
@@ -2956,11 +2984,15 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
         }
         OriginalArrival = Abc_MaxFloat( If_ObjArrTime(pObj0), If_ObjArrTime(pObj1) );
         DelayPenalty = Abc_MaxFloat( 0.0f, MergedArrival - OriginalArrival );
-        Score = 100.0f * nShared
-              + 50.0f  * AreaSaving
-              - 20.0f  * DelayPenalty
-              - 10.0f  * Vec_PtrSize(vFanins)
-              -          Vec_PtrSize(vNodes);
+        if ( MergedArrival > pObj0->Required + p->fEpsilon ||
+             MergedArrival > pObj1->Required + p->fEpsilon )
+            Score = -IF_INFINITY;
+        else if ( AreaSaving > p->fEpsilon )
+            Score = 1000.0f * AreaSaving
+                  +          nShared
+                  - 0.1f   * DelayPenalty
+                  - 0.001f * Vec_PtrSize(vFanins)
+                  - 0.0001f * Vec_PtrSize(vNodes);
         if ( Score != Score )
             Score = -IF_INFINITY;
     }
@@ -2970,8 +3002,8 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
     return Score;
 }
 
-static void If_ManMergeSameLevel( If_Man_t * p, Vec_Ptr_t * vSelected,
-                                  int maxFanin, int maxFanout )
+static void If_ManMatchMultiOutput( If_Man_t * p, Vec_Ptr_t * vSelected,
+                                    int maxFanin, int maxFanout )
 {
     const int nBucketScanMax = 64;
     const int nCandidatesMax = 128;
@@ -3142,6 +3174,65 @@ static void If_ManMergeSameLevel( If_Man_t * p, Vec_Ptr_t * vSelected,
     Vec_IntFree( vPairCounts );
 }
 
+static void If_ManMultiOutputResetNode( If_Man_t * p, If_Obj_t * pObj )
+{
+    If_Cut_t * pCut = If_ObjCutBest( pObj );
+    If_Obj_t * pLeaf;
+    int i;
+    if ( pObj->vBestKLCut == NULL )
+        pObj->vBestKLCut = Vec_PtrAlloc( 8 );
+    if ( pObj->vBestKLFanins == NULL )
+        pObj->vBestKLFanins = Vec_PtrAlloc( 8 );
+    if ( pObj->vBestKLFanouts == NULL )
+        pObj->vBestKLFanouts = Vec_PtrAlloc( 2 );
+    Vec_PtrClear( pObj->vBestKLCut );
+    Vec_PtrClear( pObj->vBestKLFanins );
+    Vec_PtrClear( pObj->vBestKLFanouts );
+    if ( pCut->vNodesInCut != NULL )
+        If_ManDeepSet( p, pObj->vBestKLCut, pCut->vNodesInCut );
+    else
+        Vec_PtrPush( pObj->vBestKLCut, &pObj->Id );
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        Vec_PtrPushUniqueNumber( pObj->vBestKLFanins, &pLeaf->Id );
+    Vec_PtrPush( pObj->vBestKLFanouts, &pObj->Id );
+    pObj->KLArea = pCut->Area;
+    pObj->KLDelay = pCut->Delay;
+    pObj->KLEdge = pCut->Edge;
+    pObj->KLPower = pCut->Power;
+    pObj->KLLeaves = pCut->nLeaves;
+    pObj->KLMerge = 1.0f;
+}
+
+int If_ManMultiOutputRound( If_Man_t * p, int maxFanin, int maxFanout )
+{
+    Vec_Ptr_t * vSelected = Vec_PtrAlloc( 128 );
+    If_Obj_t * pObj;
+    int i, nGroups = 0;
+    float AreaSaving = 0.0f;
+    If_ManForEachNode( p, pObj, i )
+    {
+        If_ManMultiOutputResetNode( p, pObj );
+        if ( pObj->nRefs > 0 )
+            Vec_PtrPush( vSelected, &pObj->Id );
+    }
+    If_ManMatchMultiOutput( p, vSelected, maxFanin, maxFanout );
+    If_ManForEachNode( p, pObj, i )
+        if ( Vec_PtrSize(pObj->vBestKLFanouts) == maxFanout &&
+             *(int *)Vec_PtrEntry(pObj->vBestKLFanouts, 0) == pObj->Id )
+        {
+            If_Obj_t * pRoot1 = If_ManObj( p,
+                *(int *)Vec_PtrEntry(pObj->vBestKLFanouts, 1) );
+            AreaSaving += If_CutLutArea( p, If_ObjCutBest(pObj) ) +
+                          If_CutLutArea( p, If_ObjCutBest(pRoot1) ) -
+                          If_MoMergedLutArea( p,
+                              Vec_PtrSize(pObj->vBestKLFanins) );
+            nGroups++;
+        }
+    p->AreaGlo = Abc_MaxFloat( 0.0f, p->AreaGlo - AreaSaving );
+    Vec_PtrFree( vSelected );
+    return nGroups;
+}
+
 void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int levelleaf,
     Vec_Ptr_t *coveredLeaves, int type, int maxfanin, int maxfanout) {
     const int nGreedyLayerMax = 2048;
@@ -3226,8 +3317,8 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
                        levelleaf, selectedCuts->nSize );
         levelleaf++;
 
-        /****************************same layer cut merging*****************************/
-        If_ManMergeSameLevel( p, selectedCuts, maxfanin, maxfanout );
+        /****************************multi-output cut matching**************************/
+        If_ManMatchMultiOutput( p, selectedCuts, maxfanin, maxfanout );
 
         // update the nleaves based on current selections
         // if the netlists size is large apply rec each layer
