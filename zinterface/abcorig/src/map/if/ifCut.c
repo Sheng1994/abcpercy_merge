@@ -2839,6 +2839,9 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
 
     if ( pObj0 == NULL || pObj1 == NULL || pObj0 == pObj1 ||
          pObj0->Type != IF_AND || pObj1->Type != IF_AND ||
+         pObj0->vBestKLCut == NULL || pObj1->vBestKLCut == NULL ||
+         pObj0->vBestKLFanins == NULL || pObj1->vBestKLFanins == NULL ||
+         pObj0->vBestKLFanouts == NULL || pObj1->vBestKLFanouts == NULL ||
          pObj0->Level != pObj1->Level ||
          Vec_PtrSize(pObj0->vBestKLFanouts) != 1 ||
          Vec_PtrSize(pObj1->vBestKLFanouts) != 1 )
@@ -2858,14 +2861,21 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
 
     Vec_PtrForEachEntry( int *, vFanouts, pRootId, i )
     {
-        If_Obj_t *pRoot = If_ManObj( p, *pRootId );
+        If_Obj_t *pRoot;
+        if ( *pRootId < 0 || *pRootId >= If_ManObjNum(p) )
+            continue;
+        pRoot = If_ManObj( p, *pRootId );
+        if ( pRoot == NULL || pRoot->vBestKLCut == NULL ||
+             pRoot->vBestKLFanins == NULL || pRoot->vBestKLFanouts == NULL )
+            continue;
         Vec_PtrClear( pRoot->vBestKLCut );
         Vec_PtrClear( pRoot->vBestKLFanins );
         Vec_PtrClear( pRoot->vBestKLFanouts );
         If_ManDeepSet( p, pRoot->vBestKLCut, vNodes );
         If_ManDeepSet( p, pRoot->vBestKLFanins, vFanins );
         If_ManDeepSet( p, pRoot->vBestKLFanouts, vFanouts );
-        vKLPara( p, pRoot, pRoot->vBestKLCut );
+        pRoot->KLLeaves = Vec_PtrSize(vFanins);
+        pRoot->KLMerge = 1.0f / Vec_PtrSize(vFanouts);
     }
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vFanins );
@@ -2895,7 +2905,7 @@ static int If_MoPairCompare( const void * p0, const void * p1 )
 
 static float If_MoMergedLutArea( If_Man_t * p, int nFanins )
 {
-    if ( p->pPars->pLutLib )
+    if ( p->pPars->pLutLib && nFanins <= p->pPars->nLutSize )
         return p->pPars->pLutLib->pLutAreas[nFanins];
     return 1.0f;
 }
@@ -2914,7 +2924,11 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
     float OriginalArrival;
     float Score = -IF_INFINITY;
 
-    if ( pObj0->Level != pObj1->Level ||
+    if ( pObj0 == NULL || pObj1 == NULL ||
+         pObj0->vBestKLCut == NULL || pObj1->vBestKLCut == NULL ||
+         pObj0->vBestKLFanins == NULL || pObj1->vBestKLFanins == NULL ||
+         pObj0->vBestKLFanouts == NULL || pObj1->vBestKLFanouts == NULL ||
+         pObj0->Level != pObj1->Level ||
          Vec_PtrSize(pObj0->vBestKLFanouts) != 1 ||
          Vec_PtrSize(pObj1->vBestKLFanouts) != 1 )
         return -IF_INFINITY;
@@ -2931,8 +2945,15 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
                      If_CutLutArea( p, If_ObjCutBest(pObj1) ) -
                      If_MoMergedLutArea( p, Vec_PtrSize(vFanins) );
         Vec_PtrForEachEntry( int *, vFanins, pFaninId, i )
-            MergedArrival = Abc_MaxFloat( MergedArrival,
-                                         If_ObjArrTime(If_ManObj(p, *pFaninId)) + 1.0f );
+        {
+            If_Obj_t * pFanin;
+            if ( *pFaninId < 0 || *pFaninId >= If_ManObjNum(p) )
+                continue;
+            pFanin = If_ManObj( p, *pFaninId );
+            if ( pFanin != NULL )
+                MergedArrival = Abc_MaxFloat( MergedArrival,
+                                             If_ObjArrTime(pFanin) + 1.0f );
+        }
         OriginalArrival = Abc_MaxFloat( If_ObjArrTime(pObj0), If_ObjArrTime(pObj1) );
         DelayPenalty = Abc_MaxFloat( 0.0f, MergedArrival - OriginalArrival );
         Score = 100.0f * nShared
@@ -2940,6 +2961,8 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
               - 20.0f  * DelayPenalty
               - 10.0f  * Vec_PtrSize(vFanins)
               -          Vec_PtrSize(vNodes);
+        if ( Score != Score )
+            Score = -IF_INFINITY;
     }
     Vec_PtrFree( vNodes );
     Vec_PtrFree( vFanins );
@@ -2950,29 +2973,151 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
 static void If_ManMergeSameLevel( If_Man_t * p, Vec_Ptr_t * vSelected,
                                   int maxFanin, int maxFanout )
 {
+    const int nBucketScanMax = 64;
+    const int nCandidatesMax = 128;
+    const int nPairsPerObjMax = 8;
+    Vec_Ptr_t * vBuckets = Vec_PtrStart( If_ManObjNum(p) );
+    Vec_Ptr_t * vAllPairs = Vec_PtrAlloc( 16 );
     Vec_Ptr_t * vPairs = Vec_PtrAlloc( 16 );
+    Vec_Ptr_t * vBest = Vec_PtrStart( If_ManObjNum(p) );
+    Vec_Int_t * vPairCounts = Vec_IntStart( If_ManObjNum(p) );
     If_MoPair_t * pPair;
-    int i, j;
+    int * pObjId, * pFaninId, * pPartnerId;
+    int i, k;
 
-    for ( i = 0; i < Vec_PtrSize(vSelected); i++ )
+    /* Index selected single-output groups by shared fanins. */
+    Vec_PtrForEachEntry( int *, vSelected, pObjId, i )
     {
-        If_Obj_t * pObj0 = If_ManObj( p, *(int *)Vec_PtrEntry(vSelected, i) );
-        for ( j = i + 1; j < Vec_PtrSize(vSelected); j++ )
+        If_Obj_t * pObj;
+        if ( *pObjId < 0 || *pObjId >= If_ManObjNum(p) )
+            continue;
+        pObj = If_ManObj( p, *pObjId );
+        if ( pObj == NULL || pObj->vBestKLFanins == NULL ||
+             pObj->vBestKLFanouts == NULL ||
+             Vec_PtrSize(pObj->vBestKLFanouts) != 1 )
+            continue;
+        Vec_PtrForEachEntry( int *, pObj->vBestKLFanins, pFaninId, k )
         {
-            If_Obj_t * pObj1 = If_ManObj( p, *(int *)Vec_PtrEntry(vSelected, j) );
-            float Score = If_MoPairScore( p, pObj0, pObj1, maxFanin, maxFanout );
-            if ( Score == -IF_INFINITY )
+            Vec_Ptr_t * vBucket;
+            if ( *pFaninId < 0 || *pFaninId >= If_ManObjNum(p) )
                 continue;
-            pPair = ABC_ALLOC( If_MoPair_t, 1 );
-            pPair->pObj0 = pObj0;
-            pPair->pObj1 = pObj1;
-            pPair->Score = Score;
-            Vec_PtrPush( vPairs, pPair );
+            vBucket = (Vec_Ptr_t *)Vec_PtrEntry( vBuckets, *pFaninId );
+            if ( vBucket == NULL )
+            {
+                vBucket = Vec_PtrAlloc( 4 );
+                Vec_PtrWriteEntry( vBuckets, *pFaninId, vBucket );
+            }
+            Vec_PtrPush( vBucket, &pObj->Id );
         }
     }
 
-    Vec_PtrSort( vPairs, If_MoPairCompare );
+    /* Generate unique candidate pairs from shared-fanin buckets. */
+    Vec_PtrForEachEntry( int *, vSelected, pObjId, i )
+    {
+        Vec_Ptr_t * vCandidates;
+        Vec_Ptr_t * vObjPairs;
+        If_Obj_t * pObj0;
+        if ( *pObjId < 0 || *pObjId >= If_ManObjNum(p) )
+            continue;
+        pObj0 = If_ManObj( p, *pObjId );
+        if ( pObj0 == NULL || pObj0->vBestKLFanins == NULL ||
+             pObj0->vBestKLFanouts == NULL ||
+             Vec_PtrSize(pObj0->vBestKLFanouts) != 1 )
+            continue;
+        vCandidates = Vec_PtrAlloc( 16 );
+        vObjPairs = Vec_PtrAlloc( 16 );
+        Vec_PtrForEachEntry( int *, pObj0->vBestKLFanins, pFaninId, k )
+        {
+            Vec_Ptr_t * vBucket;
+            int b, nScan, iStart;
+            if ( *pFaninId < 0 || *pFaninId >= If_ManObjNum(p) )
+                continue;
+            vBucket = (Vec_Ptr_t *)Vec_PtrEntry( vBuckets, *pFaninId );
+            if ( vBucket == NULL )
+                continue;
+            nScan = Abc_MinInt( Vec_PtrSize(vBucket), nBucketScanMax );
+            iStart = pObj0->Id % Vec_PtrSize(vBucket);
+            for ( b = 0; b < nScan; b++ )
+            {
+                pPartnerId = (int *)Vec_PtrEntry( vBucket,
+                    (iStart + b) % Vec_PtrSize(vBucket) );
+                if ( *pPartnerId == pObj0->Id )
+                    continue;
+                Vec_PtrPushUnique( vCandidates, pPartnerId );
+                if ( Vec_PtrSize(vCandidates) >= nCandidatesMax )
+                    break;
+            }
+            if ( Vec_PtrSize(vCandidates) >= nCandidatesMax )
+                break;
+        }
+        Vec_PtrForEachEntry( int *, vCandidates, pPartnerId, k )
+        {
+            If_Obj_t * pObj1 = If_ManObj( p, *pPartnerId );
+            If_Obj_t * pObjLo = pObj0->Id < pObj1->Id ? pObj0 : pObj1;
+            If_Obj_t * pObjHi = pObj0->Id < pObj1->Id ? pObj1 : pObj0;
+            float Score = If_MoPairScore( p, pObjLo, pObjHi, maxFanin, maxFanout );
+            if ( Score == -IF_INFINITY )
+                continue;
+            pPair = ABC_ALLOC( If_MoPair_t, 1 );
+            pPair->pObj0 = pObjLo;
+            pPair->pObj1 = pObjHi;
+            pPair->Score = Score;
+            Vec_PtrPush( vObjPairs, pPair );
+        }
+        Vec_PtrSort( vObjPairs, If_MoPairCompare );
+        Vec_PtrForEachEntry( If_MoPair_t *, vObjPairs, pPair, k )
+            if ( k < nPairsPerObjMax )
+                Vec_PtrPush( vAllPairs, pPair );
+            else
+                ABC_FREE( pPair );
+        Vec_PtrFree( vCandidates );
+        Vec_PtrFree( vObjPairs );
+    }
+
+    /*
+     * Retain a bounded high-quality candidate graph.  Processing pairs in
+     * score order gives each object up to nPairsPerObjMax strong alternatives.
+     */
+    Vec_PtrSort( vAllPairs, If_MoPairCompare );
+    Vec_PtrForEachEntry( If_MoPair_t *, vAllPairs, pPair, i )
+    {
+        int ObjId0 = pPair->pObj0->Id;
+        int ObjId1 = pPair->pObj1->Id;
+        If_MoPair_t * pPrev = i == 0 ? NULL :
+            (If_MoPair_t *)Vec_PtrEntry( vAllPairs, i - 1 );
+        if ( pPrev != NULL && pPrev->pObj0->Id == ObjId0 &&
+             pPrev->pObj1->Id == ObjId1 )
+            continue;
+        if ( Vec_IntEntry(vPairCounts, ObjId0) >= nPairsPerObjMax ||
+             Vec_IntEntry(vPairCounts, ObjId1) >= nPairsPerObjMax )
+            continue;
+        Vec_IntWriteEntry( vPairCounts, ObjId0, Vec_IntEntry(vPairCounts, ObjId0) + 1 );
+        Vec_IntWriteEntry( vPairCounts, ObjId1, Vec_IntEntry(vPairCounts, ObjId1) + 1 );
+        Vec_PtrPush( vPairs, pPair );
+        if ( Vec_PtrEntry(vBest, ObjId0) == NULL )
+            Vec_PtrWriteEntry( vBest, ObjId0, pPair );
+        if ( Vec_PtrEntry(vBest, ObjId1) == NULL )
+            Vec_PtrWriteEntry( vBest, ObjId1, pPair );
+    }
+
     If_ManCleanMarkV( p );
+    /* Commit pairs that are the first choice of both endpoints. */
+    Vec_PtrForEachEntry( If_MoPair_t *, vPairs, pPair, i )
+    {
+        if ( Vec_PtrEntry(vBest, pPair->pObj0->Id) != pPair ||
+             Vec_PtrEntry(vBest, pPair->pObj1->Id) != pPair )
+            continue;
+        if ( pPair->pObj0->fVisit || pPair->pObj1->fVisit )
+            continue;
+        if ( If_MultiOutputGroupMerge( p, pPair->pObj0, pPair->pObj1,
+                                       maxFanin, maxFanout ) )
+        {
+            pPair->pObj0->fVisit = 1;
+            pPair->pObj1->fVisit = 1;
+        }
+    }
+
+    /* Fill remaining unmatched objects greedily in descending score order. */
     Vec_PtrForEachEntry( If_MoPair_t *, vPairs, pPair, i )
     {
         if ( pPair->pObj0->fVisit || pPair->pObj1->fVisit )
@@ -2984,16 +3129,52 @@ static void If_ManMergeSameLevel( If_Man_t * p, Vec_Ptr_t * vSelected,
             pPair->pObj1->fVisit = 1;
         }
     }
-    Vec_PtrForEachEntry( If_MoPair_t *, vPairs, pPair, i )
+
+    Vec_PtrForEachEntry( If_MoPair_t *, vAllPairs, pPair, i )
         ABC_FREE( pPair );
+    for ( i = 0; i < Vec_PtrSize(vBuckets); i++ )
+        if ( Vec_PtrEntry(vBuckets, i) != NULL )
+            Vec_PtrFree( (Vec_Ptr_t *)Vec_PtrEntry(vBuckets, i) );
+    Vec_PtrFree( vBuckets );
+    Vec_PtrFree( vAllPairs );
     Vec_PtrFree( vPairs );
+    Vec_PtrFree( vBest );
+    Vec_IntFree( vPairCounts );
 }
 
 void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int levelleaf,
     Vec_Ptr_t *coveredLeaves, int type, int maxfanin, int maxfanout) {
+    const int nGreedyLayerMax = 2048;
+    const int nRecursionMax = 2048;
     Vec_Ptr_t *selectedCuts = Vec_PtrAlloc(0);
+    if ( levelleaf >= nRecursionMax )
+    {
+        Vec_PtrFree( selectedCuts );
+        return;
+    }
     if (nleaves->nSize > 0) {
-        while (nleaves->nSize > 0) {
+        if ( Vec_PtrSize(nleaves) > nGreedyLayerMax )
+        {
+            int * pObjId;
+            int i;
+            Vec_PtrForEachEntry( int *, nleaves, pObjId, i )
+            {
+                If_Obj_t * pObj;
+                if ( *pObjId < 0 || *pObjId >= If_ManObjNum(p) )
+                    continue;
+                pObj = If_ManObj( p, *pObjId );
+                if ( pObj == NULL )
+                    continue;
+                Vec_PtrPushUnique( coveredLeaves, &pObj->Id );
+                if ( pObj->Type == IF_AND )
+                {
+                    Vec_PtrPushUnique( solutions, &pObj->Id );
+                    Vec_PtrPushUnique( selectedCuts, &pObj->Id );
+                }
+            }
+            Vec_PtrClear( nleaves );
+        }
+        else while (nleaves->nSize > 0) {
             int covernumax = -1;
             int bestObj = *(int *)Vec_PtrEntry(nleaves, 0);
             for (int i = 0; i < nleaves->nSize; i++) {
@@ -3040,7 +3221,10 @@ void If_ManSelRec(If_Man_t *p, Vec_Ptr_t *nleaves, Vec_Ptr_t *solutions, int lev
             // }
             // printf("Need \n");
         }
-        printf("Reduced leaves of level %d with node number %d\n", levelleaf++, selectedCuts->nSize);
+        if ( p->pPars->fVerbose )
+            Abc_Print( 1, "Reduced leaves of level %d with node number %d\n",
+                       levelleaf, selectedCuts->nSize );
+        levelleaf++;
 
         /****************************same layer cut merging*****************************/
         If_ManMergeSameLevel( p, selectedCuts, maxfanin, maxfanout );

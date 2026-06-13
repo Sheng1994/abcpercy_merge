@@ -426,59 +426,66 @@ void Io_Write( Abc_Ntk_t * pNtk, char * pFileName, Io_FileType_t FileType )
         pNtkTemp = Abc_NtkToNetlistBench( pNtk );
     }
     else
+    {
         /***********************generate pNtktemp here*******************************/
         pNtkTemp = Abc_NtkToNetlist( pNtk );
 
         /***************************user define*************************************/
-        // modify the coroots nodes index
-        Abc_Obj_t * pNode1; Abc_Obj_t * pNode2; int i; int j;
-        // initialize the fMaker
-        // Abc_NtkForEachNode(pNtkTemp, pNode1, i) pNode1->fMarker = false;
-        Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
-            if (pNode1->fMarker == true) continue;
-            Vec_Int_t *coNodeTemp = Vec_IntAlloc(0);
-            Vec_IntPushUnique(coNodeTemp, pNode1->Id);
-            Vec_IntSort(&pNode1->vCoRoots, NULL);
-            // collect all LUTs within same KL cut
-            Abc_NtkForEachNode(pNtkTemp, pNode2, j) {
-                if (pNode2->fMarker == true) continue;
-                Vec_IntSort(&pNode2->vCoRoots, NULL);
-                if (pNode1->vCoRoots.nSize == pNode2->vCoRoots.nSize) {
-                    bool isequal = true;
-                    for (int k = 0; k < pNode1->vCoRoots.nSize; k++) {
-                        if (pNode1->vCoRoots.pArray[k] != pNode2->vCoRoots.pArray[k]) {
-                            isequal = false;
-                            break;
+        /*
+         * abcIf already propagates consistent co-root groups.  The legacy
+         * normalization below compares every node pair, which is prohibitively
+         * expensive for large netlists.  Keep it only for small legacy cases.
+         */
+        if ( pNtkTemp != NULL && Abc_NtkNodeNum(pNtkTemp) <= 5000 )
+        {
+            Abc_Obj_t * pNode1; Abc_Obj_t * pNode2; int i; int j;
+            Abc_NtkForEachNode(pNtkTemp, pNode1, i) {
+                if (pNode1->fMarker == true) continue;
+                Vec_Int_t *coNodeTemp = Vec_IntAlloc(0);
+                Vec_IntPushUnique(coNodeTemp, pNode1->Id);
+                Vec_IntSort(&pNode1->vCoRoots, NULL);
+                // collect all LUTs within same KL cut
+                Abc_NtkForEachNode(pNtkTemp, pNode2, j) {
+                    if (pNode2->fMarker == true) continue;
+                    Vec_IntSort(&pNode2->vCoRoots, NULL);
+                    if (pNode1->vCoRoots.nSize == pNode2->vCoRoots.nSize) {
+                        bool isequal = true;
+                        for (int k = 0; k < pNode1->vCoRoots.nSize; k++) {
+                            if (pNode1->vCoRoots.pArray[k] != pNode2->vCoRoots.pArray[k]) {
+                                isequal = false;
+                                break;
+                            }
+                        }
+                        if (isequal) {
+                            Vec_IntPushUnique(coNodeTemp, pNode2->Id);
                         }
                     }
-                    if (isequal) {
-                        Vec_IntPushUnique(coNodeTemp, pNode2->Id);
+                }
+                // collect all fanins of these LUTs
+                Vec_Int_t *allFanins = Vec_IntAlloc(0);
+                for (j = 0; j < coNodeTemp->nSize; j++) {
+                    int nodeTemp = coNodeTemp->pArray[j];
+                    Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
+                    for (int k = 0; k < currentNode->vFanins.nSize; k++) {
+                        Vec_IntPushUnique(allFanins, currentNode->vFanins.pArray[k]);
                     }
                 }
-            }
-            // collect all fanins of these LUTs
-            Vec_Int_t *allFanins = Vec_IntAlloc(0);
-            for (j = 0; j < coNodeTemp->nSize; j++) {
-                int nodeTemp = coNodeTemp->pArray[j];
-                Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
-                for (int k = 0; k < currentNode->vFanins.nSize; k++) {
-                    Vec_IntPushUnique(allFanins, currentNode->vFanins.pArray[k]);
-                }
-            }
 
-            for (j = 0; j < coNodeTemp->nSize; j++) {
-                int nodeTemp = coNodeTemp->pArray[j];
-                Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
-                if (allFanins->nSize <= 6)
-                    currentNode->vCoRoots = *coNodeTemp;
-                else {
-                    Vec_Int_t *coNodeSelf = Vec_IntAlloc(0);
-                    Vec_IntPushUnique(coNodeSelf, currentNode->Id);
-                    currentNode->vCoRoots = *coNodeSelf;
+                for (j = 0; j < coNodeTemp->nSize; j++) {
+                    int nodeTemp = coNodeTemp->pArray[j];
+                    Abc_Obj_t *currentNode = (Abc_Obj_t *)Vec_PtrEntry(pNtkTemp->vObjs, nodeTemp);
+                    if (allFanins->nSize <= 6)
+                        currentNode->vCoRoots = *coNodeTemp;
+                    else {
+                        Vec_Int_t *coNodeSelf = Vec_IntAlloc(0);
+                        Vec_IntPushUnique(coNodeSelf, currentNode->Id);
+                        currentNode->vCoRoots = *coNodeSelf;
+                    }
+                    currentNode->fMarker = true;
                 }
-                currentNode->fMarker = true;
             }
         }
+    }
 
 
     if ( pNtkTemp == NULL )
