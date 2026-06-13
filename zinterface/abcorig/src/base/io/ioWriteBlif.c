@@ -506,7 +506,7 @@ void Io_NtkWriteNodeFanins( FILE * pFile, Abc_Obj_t * pNode )
     fprintf( pFile, " %s", pName );
 
     // output the coRoot
-    char combined[10];
+    char combined[64] = "";
     Vec_IntSort(&pNode->vCoRoots, NULL);
     if (pNode->vCoRoots.nSize > 1) {
         if (pNode->vCoRoots.nSize == 2) {
