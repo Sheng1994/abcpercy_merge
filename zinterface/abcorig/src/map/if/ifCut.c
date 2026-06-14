@@ -2853,7 +2853,7 @@ static int If_MoArchitectureCheck( If_Cut_t * pCut0, If_Obj_t * pRoot0,
                                    If_Cut_t * pCut1, If_Obj_t * pRoot1,
                                    int nUnionLeaves, int maxFanin )
 {
-    const int kDual = 5;
+    const int kDual = 6;
     if ( pCut0 == NULL || pCut1 == NULL ||
          pCut0->nLeaves > kDual || pCut1->nLeaves > kDual ||
          nUnionLeaves > maxFanin )
