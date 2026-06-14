@@ -85,6 +85,7 @@ typedef struct If_DsdMan_t_  If_DsdMan_t;
 typedef struct Ifn_Ntk_t_    Ifn_Ntk_t;
 
 typedef struct Ifif_Par_t_   Ifif_Par_t;
+
 struct Ifif_Par_t_
 {
     int                nLutSize;      // the LUT size

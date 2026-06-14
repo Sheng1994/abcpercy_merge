@@ -2853,8 +2853,9 @@ static int If_MoArchitectureCheck( If_Cut_t * pCut0, If_Obj_t * pRoot0,
                                    If_Cut_t * pCut1, If_Obj_t * pRoot1,
                                    int nUnionLeaves, int maxFanin )
 {
+    const int kDual = 5;
     if ( pCut0 == NULL || pCut1 == NULL ||
-         pCut0->nLeaves > maxFanin || pCut1->nLeaves > maxFanin ||
+         pCut0->nLeaves > kDual || pCut1->nLeaves > kDual ||
          nUnionLeaves > maxFanin )
         return 0;
     if ( If_MoCutContainsLeaf(pCut0, pRoot1->Id) ||
@@ -2964,7 +2965,10 @@ int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
     vNodes = Vec_PtrCombine( pObj0->vBestKLCut, pObj1->vBestKLCut );
     vFanins = Vec_PtrCombine( pObj0->vBestKLFanins, pObj1->vBestKLFanins );
     vFanouts = Vec_PtrCombine( pObj0->vBestKLFanouts, pObj1->vBestKLFanouts );
-    if ( Vec_PtrSize(vFanins) > maxFanin ||
+    if ( !If_MoArchitectureCheck( If_ObjCutBest(pObj0), pObj0,
+                                  If_ObjCutBest(pObj1), pObj1,
+                                  Vec_PtrSize(vFanins), maxFanin ) ||
+         Vec_PtrSize(vFanins) > maxFanin ||
          Vec_PtrSize(vFanouts) != maxFanout ||
          Vec_Ismemeber(vFanins, pObj0->Id) ||
          Vec_Ismemeber(vFanins, pObj1->Id) )
