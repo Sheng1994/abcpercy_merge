@@ -553,6 +553,7 @@ extern Vec_Ptr_t *     FanoutCount( If_Man_t * p, Vec_Ptr_t * vNodesInCut );
 extern void            If_ManLeafDev( If_Man_t * p, If_Obj_t * pObj );
 extern void            If_TransandSort( If_Man_t * p );
 extern int             If_ManMultiOutputRound( If_Man_t * p, int maxFanin, int maxFanout );
+extern float           If_MultiOutputCutArea( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut, float Area, int Mode, int maxFanin );
 extern int             If_MultiOutputGroupMerge( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1, int maxFanin, int maxFanout );
 extern void            If_ManSelRec( If_Man_t * p, Vec_Ptr_t * nleaves, Vec_Ptr_t * solutions, int levelleaf, Vec_Ptr_t * coveredLeaves, int type, int maxfanin, int maxfanout );
 extern void            If_LayerBasedExpand( If_Man_t * p, Vec_Ptr_t * nleaves, int maxFanin, int maxFanout );

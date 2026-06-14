@@ -226,6 +226,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             Abc_Print( 1, "If_ObjPerformMappingAnd(): Warning! Node with ID %d has delay (%f) exceeding the required times (%f).\n", 
                 pObj->Id, pCut->Delay, pObj->Required + p->fEpsilon );
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
+        if ( !fPreprocess && Mode > 0 && p->pPars->nLutSize >= 6 )
+            pCut->Area = If_MultiOutputCutArea( p, pObj, pCut, pCut->Area, Mode, 6 );
         if ( p->pPars->fEdge )
             pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
         if ( p->pPars->fPower )
@@ -499,6 +501,8 @@ void If_ObjPerformMappingAnd( If_Man_t * p, If_Obj_t * pObj, int Mode, int fPrep
             continue;
         // compute area of the cut (this area may depend on the application specific cost)
         pCut->Area = (Mode == 2)? If_CutAreaDerefed( p, pCut ) : If_CutAreaFlow( p, pCut );
+        if ( !fPreprocess && Mode > 0 && p->pPars->nLutSize >= 6 )
+            pCut->Area = If_MultiOutputCutArea( p, pObj, pCut, pCut->Area, Mode, 6 );
         if ( p->pPars->fEdge )
             pCut->Edge = (Mode == 2)? If_CutEdgeDerefed( p, pCut ) : If_CutEdgeFlow( p, pCut );
         if ( p->pPars->fPower )

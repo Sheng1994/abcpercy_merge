@@ -2830,6 +2830,39 @@ void If_ManDeepSet( If_Man_t *p, Vec_Ptr_t *Vec1, Vec_Ptr_t *Vec2) {
 
 static float If_MoMergedLutArea( If_Man_t * p, int nFanins );
 
+static Vec_Ptr_t * If_MoCutLeaves( If_Man_t * p, If_Cut_t * pCut )
+{
+    Vec_Ptr_t * vLeaves = Vec_PtrAlloc( pCut->nLeaves );
+    If_Obj_t * pLeaf;
+    int i;
+    If_CutForEachLeaf( p, pCut, pLeaf, i )
+        Vec_PtrPushUniqueNumber( vLeaves, &pLeaf->Id );
+    return vLeaves;
+}
+
+static int If_MoCutContainsLeaf( If_Cut_t * pCut, int ObjId )
+{
+    int i;
+    for ( i = 0; i < (int)pCut->nLeaves; i++ )
+        if ( pCut->pLeaves[i] == ObjId )
+            return 1;
+    return 0;
+}
+
+static int If_MoArchitectureCheck( If_Cut_t * pCut0, If_Obj_t * pRoot0,
+                                   If_Cut_t * pCut1, If_Obj_t * pRoot1,
+                                   int nUnionLeaves, int maxFanin )
+{
+    if ( pCut0 == NULL || pCut1 == NULL ||
+         pCut0->nLeaves > maxFanin || pCut1->nLeaves > maxFanin ||
+         nUnionLeaves > maxFanin )
+        return 0;
+    if ( If_MoCutContainsLeaf(pCut0, pRoot1->Id) ||
+         If_MoCutContainsLeaf(pCut1, pRoot0->Id) )
+        return 0;
+    return 1;
+}
+
 static float If_MoGroupAreaFlow( If_Man_t * p, Vec_Ptr_t * vFanins )
 {
     If_Obj_t * pFanin;
@@ -2848,6 +2881,65 @@ static float If_MoGroupAreaFlow( If_Man_t * p, Vec_Ptr_t * vFanins )
                     Abc_MaxFloat( pFanin->EstRefs, p->fEpsilon );
     }
     return Area;
+}
+
+/*
+ * Re-evaluate a single-output cut using the dual-output partner selected in
+ * the previous mapping round.  The two original cuts remain separate, so each
+ * output keeps its own input-to-output timing paths.  Only the physical LUT
+ * area and the union-input architecture constraint are shared.
+ */
+float If_MultiOutputCutArea( If_Man_t * p, If_Obj_t * pObj, If_Cut_t * pCut,
+                            float Area, int Mode, int maxFanin )
+{
+    If_Obj_t * pPartner;
+    If_Cut_t * pPartnerCut;
+    Vec_Ptr_t * vLeaves0, * vLeaves1, * vUnion;
+    int PartnerId, nShared;
+    float GroupArea, SharedArea;
+
+    if ( pObj == NULL || pCut == NULL || pObj->vBestKLFanouts == NULL ||
+         Vec_PtrSize(pObj->vBestKLFanouts) != 2 )
+        return Area;
+    PartnerId = *(int *)Vec_PtrEntry( pObj->vBestKLFanouts, 0 );
+    if ( PartnerId == pObj->Id )
+        PartnerId = *(int *)Vec_PtrEntry( pObj->vBestKLFanouts, 1 );
+    if ( PartnerId < 0 || PartnerId >= If_ManObjNum(p) )
+        return Area;
+    pPartner = If_ManObj( p, PartnerId );
+    if ( pPartner == NULL || pPartner == pObj || !If_ObjIsAnd(pPartner) )
+        return Area;
+    pPartnerCut = If_ObjCutBest( pPartner );
+    if ( pPartnerCut == NULL || pPartnerCut->nLeaves == 0 ||
+         pPartnerCut->Delay > pPartner->Required + p->fEpsilon )
+        return Area;
+
+    vLeaves0 = If_MoCutLeaves( p, pCut );
+    vLeaves1 = If_MoCutLeaves( p, pPartnerCut );
+    vUnion = Vec_PtrCombine( vLeaves0, vLeaves1 );
+    nShared = Vec_PtrSize(vLeaves0) + Vec_PtrSize(vLeaves1) - Vec_PtrSize(vUnion);
+    if ( nShared == 0 ||
+         !If_MoArchitectureCheck( pCut, pObj, pPartnerCut, pPartner,
+                                  Vec_PtrSize(vUnion), maxFanin ) ||
+         pCut->Delay > pObj->Required + p->fEpsilon )
+    {
+        Vec_PtrFree( vLeaves0 );
+        Vec_PtrFree( vLeaves1 );
+        Vec_PtrFree( vUnion );
+        return Area;
+    }
+
+    GroupArea = If_MoGroupAreaFlow( p, vUnion );
+    if ( Mode == 2 )
+        SharedArea = Area - 0.5f *
+            (If_CutLutArea(p, pCut) + If_CutLutArea(p, pPartnerCut) -
+             If_MoMergedLutArea(p, Vec_PtrSize(vUnion)));
+    else
+        SharedArea = GroupArea / 2.0f;
+    Vec_PtrFree( vLeaves0 );
+    Vec_PtrFree( vLeaves1 );
+    Vec_PtrFree( vUnion );
+    return Abc_MinFloat( Area, Abc_MaxFloat(0.0f, SharedArea) );
 }
 
 int If_MultiOutputGroupMerge( If_Man_t *p, If_Obj_t *pObj0, If_Obj_t *pObj1,
@@ -2943,11 +3035,10 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
     Vec_Ptr_t * vNodes;
     Vec_Ptr_t * vFanins;
     Vec_Ptr_t * vFanouts;
-    int * pFaninId;
-    int nShared, i;
+    int nShared;
     float AreaSaving;
     float DelayPenalty;
-    float MergedArrival = 0.0f;
+    float Arrival0, Arrival1;
     float OriginalArrival;
     float Score = -IF_INFINITY;
 
@@ -2964,7 +3055,10 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
     vFanouts = Vec_PtrCombine( pObj0->vBestKLFanouts, pObj1->vBestKLFanouts );
     nShared = Vec_PtrSize(pObj0->vBestKLFanins) +
               Vec_PtrSize(pObj1->vBestKLFanins) - Vec_PtrSize(vFanins);
-    if ( nShared > 0 && Vec_PtrSize(vFanins) <= maxFanin &&
+    if ( nShared > 0 &&
+         If_MoArchitectureCheck( If_ObjCutBest(pObj0), pObj0,
+                                 If_ObjCutBest(pObj1), pObj1,
+                                 Vec_PtrSize(vFanins), maxFanin ) &&
          Vec_PtrSize(vFanouts) == maxFanout &&
          !Vec_Ismemeber(vFanins, pObj0->Id) &&
          !Vec_Ismemeber(vFanins, pObj1->Id) )
@@ -2972,20 +3066,18 @@ static float If_MoPairScore( If_Man_t * p, If_Obj_t * pObj0, If_Obj_t * pObj1,
         AreaSaving = If_CutLutArea( p, If_ObjCutBest(pObj0) ) +
                      If_CutLutArea( p, If_ObjCutBest(pObj1) ) -
                      If_MoMergedLutArea( p, Vec_PtrSize(vFanins) );
-        Vec_PtrForEachEntry( int *, vFanins, pFaninId, i )
-        {
-            If_Obj_t * pFanin;
-            if ( *pFaninId < 0 || *pFaninId >= If_ManObjNum(p) )
-                continue;
-            pFanin = If_ManObj( p, *pFaninId );
-            if ( pFanin != NULL )
-                MergedArrival = Abc_MaxFloat( MergedArrival,
-                                             If_ObjArrTime(pFanin) + 1.0f );
-        }
+        /*
+         * Keep the two timing cones separate.  A leaf in one output cut does
+         * not create a timing path to the other output merely because both
+         * functions occupy the same physical LUT.
+         */
+        Arrival0 = If_CutDelay( p, pObj0, If_ObjCutBest(pObj0) );
+        Arrival1 = If_CutDelay( p, pObj1, If_ObjCutBest(pObj1) );
         OriginalArrival = Abc_MaxFloat( If_ObjArrTime(pObj0), If_ObjArrTime(pObj1) );
-        DelayPenalty = Abc_MaxFloat( 0.0f, MergedArrival - OriginalArrival );
-        if ( MergedArrival > pObj0->Required + p->fEpsilon ||
-             MergedArrival > pObj1->Required + p->fEpsilon )
+        DelayPenalty = Abc_MaxFloat( 0.0f,
+            Abc_MaxFloat(Arrival0, Arrival1) - OriginalArrival );
+        if ( Arrival0 > pObj0->Required + p->fEpsilon ||
+             Arrival1 > pObj1->Required + p->fEpsilon )
             Score = -IF_INFINITY;
         else if ( AreaSaving > p->fEpsilon )
             Score = 1000.0f * AreaSaving
