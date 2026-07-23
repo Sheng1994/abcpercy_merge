@@ -712,9 +712,7 @@ the reference method on Versal and UltraScale+ FPGA architectures.
     </tr>
   </tbody>
 </table>
-
 </div>
-
 </details>
 
 ### Metric Definitions
@@ -735,8 +733,6 @@ G<sub>D</sub> =
 D<sub>ref</sub> × 100%
 
 </div>
-
-The reference results correspond to the method reported by Lu et al. (2025).
 
 ## Motivation
 
