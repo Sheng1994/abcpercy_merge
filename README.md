@@ -38,105 +38,705 @@ depth and timing quality.
 
 ---
 
-```markdown
 ## Project Documentation
 
 A detailed technical description of the project is available in
 [`FPGAMAPPER.pdf`](./FPGAMAPPER.pdf), located in the repository root directory.
 
-The document provides an introduction to the pair-elimination-based
-dual-output LUT mapping framework, including its motivation, architecture
-model, candidate-generation strategy, legality and timing analysis,
-pair-selection method, ABC integration, and experimental evaluation.
+The document introduces the pair-elimination-based dual-output LUT mapping
+framework, including its motivation, architecture model, candidate-generation
+strategy, legality and timing analysis, pair-selection method, integration
+with ABC, and experimental evaluation.
 
 ---
 
 ## Benchmark Results
 
-The following tables compare the proposed implementation with the reference
-method on the Versal and UltraScale+ fracturable FPGA architectures.
+The following benchmark-level results compare the proposed implementation with
+the reference method on Versal and UltraScale+ FPGA architectures.
 
-### Versal Architecture
+<details open>
+<summary><strong>Versal Architecture Results</strong></summary>
 
-| Benchmark | Ref. LUTs | Ref. Depth | Ref. Dual (%) | Ref. Save (%) | Ref. Time (s) | Current LUTs | Current Depth | $G_D$ (%) | Current Dual (%) | Current Save (%) | Current Time (s) |
-|:----------|----------:|-----------:|--------------:|--------------:|--------------:|-------------:|--------------:|----------:|-----------------:|-----------------:|-----------------:|
-| adder | 152 | 51 | 70.39 | 40.16 | 0.07 | 154 | 51 | 0.00 | 82.41 | 40.27 | 0.04 |
-| arbiter | 2467 | 18 | 10.34 | 9.37 | 2.51 | 2465 | 18 | 0.00 | 10.43 | 9.44 | 0.54 |
-| bar | 448 | 4 | 14.29 | 12.50 | 0.27 | 448 | 4 | 0.00 | 14.29 | 12.50 | 0.11 |
-| cavlc | 80 | 4 | 45.00 | 31.03 | 0.06 | 74 | 4 | 0.00 | 56.76 | 36.21 | 0.04 |
-| ctrl | 16 | 2 | 81.25 | 44.83 | 0.01 | 16 | 2 | 0.00 | 81.25 | 44.83 | 0.01 |
-| dec | 144 | 2 | 99.31 | 49.83 | 0.15 | 151 | 2 | 0.00 | 90.07 | 47.39 | 0.03 |
-| div | 14155 | 936 | 83.64 | 35.99 | 274.31 | 12160 | 864 | 7.69 | 84.16 | 45.36 | 15.06 |
-| hyp | 24983 | 4214 | 80.07 | 43.87 | 762.75 | 27689 | 4194 | 0.47 | 62.24 | 37.77 | 36.57 |
-| i2c | 259 | 4 | 33.98 | 26.63 | 0.13 | 248 | 4 | 0.00 | 40.20 | 28.67 | 0.06 |
-| int2float | 34 | 3 | 47.06 | 33.33 | 0.01 | 36 | 3 | 0.00 | 44.44 | 30.77 | 0.01 |
-| log2 | 5330 | 74 | 49.25 | 34.13 | 32.94 | 5409 | 71 | 4.05 | 49.75 | 32.15 | 5.30 |
-| max | 513 | 45 | 52.05 | 33.29 | 0.43 | 507 | 44 | 2.22 | 51.48 | 33.98 | 0.15 |
-| mem_ctrl | 8482 | 27 | 45.59 | 29.81 | 63.53 | 8391 | 25 | 7.41 | 42.97 | 30.12 | 5.49 |
-| multiplier | 3790 | 58 | 56.07 | 36.06 | 22.53 | 3763 | 53 | 8.62 | 58.70 | 35.77 | 4.38 |
-| priority | 123 | 31 | 74.80 | 41.43 | 0.07 | 119 | 31 | 0.00 | 75.53 | 44.37 | 0.04 |
-| router | 78 | 7 | 30.77 | 12.36 | 0.01 | 72 | 7 | 0.00 | 37.06 | 26.29 | 0.01 |
-| sin | 957 | 40 | 54.13 | 34.63 | 2.14 | 928 | 36 | 10.00 | 59.57 | 36.73 | 0.79 |
-| sqrt | 4236 | 1025 | 72.85 | 25.83 | 13.00 | 3840 | 1024 | 0.10 | 79.06 | 39.81 | 2.60 |
-| square | 2041 | 51 | 96.28 | 48.95 | 15.63 | 2352 | 50 | 1.96 | 68.79 | 40.95 | 3.42 |
-| voter | 1232 | 20 | 84.82 | 54.29 | 4.63 | 1221 | 15 | 25.00 | 84.43 | 45.76 | 1.38 |
-| **Average** | — | — | **59.10** | **33.91** | **59.76** | — | — | **3.38** | **58.68** | **34.96** | **3.80** |
+<br>
 
-> **Note:** $G_D$ denotes the depth reduction achieved by the current method
-> relative to the reference method:
->
-> $$
-> G_D =
-> \frac{D_{\mathrm{ref}} - D_{\mathrm{current}}}
-> {D_{\mathrm{ref}}}
-> \times 100\%.
-> $$
->
-> **Save** denotes the reduction in the LUT-area metric relative to the
-> corresponding single-output LUT mapping baseline.
+<div align="center">
 
-### UltraScale+ Architecture
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">Benchmark</th>
+      <th colspan="5">Reference Results</th>
+      <th colspan="6">Current Results</th>
+    </tr>
+    <tr>
+      <th>LUTs</th>
+      <th>Depth</th>
+      <th>Dual<br>(%)</th>
+      <th>Save<br>(%)</th>
+      <th>Time<br>(s)</th>
+      <th>LUTs</th>
+      <th>Depth</th>
+      <th>G<sub>D</sub><br>(%)</th>
+      <th>Dual<br>(%)</th>
+      <th>Save<br>(%)</th>
+      <th>Time<br>(s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>adder</td>
+      <td align="right">152</td>
+      <td align="right">51</td>
+      <td align="right">70.39</td>
+      <td align="right">40.16</td>
+      <td align="right">0.07</td>
+      <td align="right">154</td>
+      <td align="right">51</td>
+      <td align="right">0.00</td>
+      <td align="right">82.41</td>
+      <td align="right">40.27</td>
+      <td align="right">0.04</td>
+    </tr>
+    <tr>
+      <td>arbiter</td>
+      <td align="right">2467</td>
+      <td align="right">18</td>
+      <td align="right">10.34</td>
+      <td align="right">9.37</td>
+      <td align="right">2.51</td>
+      <td align="right">2465</td>
+      <td align="right">18</td>
+      <td align="right">0.00</td>
+      <td align="right">10.43</td>
+      <td align="right">9.44</td>
+      <td align="right">0.54</td>
+    </tr>
+    <tr>
+      <td>bar</td>
+      <td align="right">448</td>
+      <td align="right">4</td>
+      <td align="right">14.29</td>
+      <td align="right">12.50</td>
+      <td align="right">0.27</td>
+      <td align="right">448</td>
+      <td align="right">4</td>
+      <td align="right">0.00</td>
+      <td align="right">14.29</td>
+      <td align="right">12.50</td>
+      <td align="right">0.11</td>
+    </tr>
+    <tr>
+      <td>cavlc</td>
+      <td align="right">80</td>
+      <td align="right">4</td>
+      <td align="right">45.00</td>
+      <td align="right">31.03</td>
+      <td align="right">0.06</td>
+      <td align="right">74</td>
+      <td align="right">4</td>
+      <td align="right">0.00</td>
+      <td align="right">56.76</td>
+      <td align="right">36.21</td>
+      <td align="right">0.04</td>
+    </tr>
+    <tr>
+      <td>ctrl</td>
+      <td align="right">16</td>
+      <td align="right">2</td>
+      <td align="right">81.25</td>
+      <td align="right">44.83</td>
+      <td align="right">0.01</td>
+      <td align="right">16</td>
+      <td align="right">2</td>
+      <td align="right">0.00</td>
+      <td align="right">81.25</td>
+      <td align="right">44.83</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>dec</td>
+      <td align="right">144</td>
+      <td align="right">2</td>
+      <td align="right">99.31</td>
+      <td align="right">49.83</td>
+      <td align="right">0.15</td>
+      <td align="right">151</td>
+      <td align="right">2</td>
+      <td align="right">0.00</td>
+      <td align="right">90.07</td>
+      <td align="right">47.39</td>
+      <td align="right">0.03</td>
+    </tr>
+    <tr>
+      <td>div</td>
+      <td align="right">14155</td>
+      <td align="right">936</td>
+      <td align="right">83.64</td>
+      <td align="right">35.99</td>
+      <td align="right">274.31</td>
+      <td align="right">12160</td>
+      <td align="right">864</td>
+      <td align="right">7.69</td>
+      <td align="right">84.16</td>
+      <td align="right">45.36</td>
+      <td align="right">15.06</td>
+    </tr>
+    <tr>
+      <td>hyp</td>
+      <td align="right">24983</td>
+      <td align="right">4214</td>
+      <td align="right">80.07</td>
+      <td align="right">43.87</td>
+      <td align="right">762.75</td>
+      <td align="right">27689</td>
+      <td align="right">4194</td>
+      <td align="right">0.47</td>
+      <td align="right">62.24</td>
+      <td align="right">37.77</td>
+      <td align="right">36.57</td>
+    </tr>
+    <tr>
+      <td>i2c</td>
+      <td align="right">259</td>
+      <td align="right">4</td>
+      <td align="right">33.98</td>
+      <td align="right">26.63</td>
+      <td align="right">0.13</td>
+      <td align="right">248</td>
+      <td align="right">4</td>
+      <td align="right">0.00</td>
+      <td align="right">40.20</td>
+      <td align="right">28.67</td>
+      <td align="right">0.06</td>
+    </tr>
+    <tr>
+      <td>int2float</td>
+      <td align="right">34</td>
+      <td align="right">3</td>
+      <td align="right">47.06</td>
+      <td align="right">33.33</td>
+      <td align="right">0.01</td>
+      <td align="right">36</td>
+      <td align="right">3</td>
+      <td align="right">0.00</td>
+      <td align="right">44.44</td>
+      <td align="right">30.77</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>log2</td>
+      <td align="right">5330</td>
+      <td align="right">74</td>
+      <td align="right">49.25</td>
+      <td align="right">34.13</td>
+      <td align="right">32.94</td>
+      <td align="right">5409</td>
+      <td align="right">71</td>
+      <td align="right">4.05</td>
+      <td align="right">49.75</td>
+      <td align="right">32.15</td>
+      <td align="right">5.30</td>
+    </tr>
+    <tr>
+      <td>max</td>
+      <td align="right">513</td>
+      <td align="right">45</td>
+      <td align="right">52.05</td>
+      <td align="right">33.29</td>
+      <td align="right">0.43</td>
+      <td align="right">507</td>
+      <td align="right">44</td>
+      <td align="right">2.22</td>
+      <td align="right">51.48</td>
+      <td align="right">33.98</td>
+      <td align="right">0.15</td>
+    </tr>
+    <tr>
+      <td>mem_ctrl</td>
+      <td align="right">8482</td>
+      <td align="right">27</td>
+      <td align="right">45.59</td>
+      <td align="right">29.81</td>
+      <td align="right">63.53</td>
+      <td align="right">8391</td>
+      <td align="right">25</td>
+      <td align="right">7.41</td>
+      <td align="right">42.97</td>
+      <td align="right">30.12</td>
+      <td align="right">5.49</td>
+    </tr>
+    <tr>
+      <td>multiplier</td>
+      <td align="right">3790</td>
+      <td align="right">58</td>
+      <td align="right">56.07</td>
+      <td align="right">36.06</td>
+      <td align="right">22.53</td>
+      <td align="right">3763</td>
+      <td align="right">53</td>
+      <td align="right">8.62</td>
+      <td align="right">58.70</td>
+      <td align="right">35.77</td>
+      <td align="right">4.38</td>
+    </tr>
+    <tr>
+      <td>priority</td>
+      <td align="right">123</td>
+      <td align="right">31</td>
+      <td align="right">74.80</td>
+      <td align="right">41.43</td>
+      <td align="right">0.07</td>
+      <td align="right">119</td>
+      <td align="right">31</td>
+      <td align="right">0.00</td>
+      <td align="right">75.53</td>
+      <td align="right">44.37</td>
+      <td align="right">0.04</td>
+    </tr>
+    <tr>
+      <td>router</td>
+      <td align="right">78</td>
+      <td align="right">7</td>
+      <td align="right">30.77</td>
+      <td align="right">12.36</td>
+      <td align="right">0.01</td>
+      <td align="right">72</td>
+      <td align="right">7</td>
+      <td align="right">0.00</td>
+      <td align="right">37.06</td>
+      <td align="right">26.29</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>sin</td>
+      <td align="right">957</td>
+      <td align="right">40</td>
+      <td align="right">54.13</td>
+      <td align="right">34.63</td>
+      <td align="right">2.14</td>
+      <td align="right">928</td>
+      <td align="right">36</td>
+      <td align="right">10.00</td>
+      <td align="right">59.57</td>
+      <td align="right">36.73</td>
+      <td align="right">0.79</td>
+    </tr>
+    <tr>
+      <td>sqrt</td>
+      <td align="right">4236</td>
+      <td align="right">1025</td>
+      <td align="right">72.85</td>
+      <td align="right">25.83</td>
+      <td align="right">13.00</td>
+      <td align="right">3840</td>
+      <td align="right">1024</td>
+      <td align="right">0.10</td>
+      <td align="right">79.06</td>
+      <td align="right">39.81</td>
+      <td align="right">2.60</td>
+    </tr>
+    <tr>
+      <td>square</td>
+      <td align="right">2041</td>
+      <td align="right">51</td>
+      <td align="right">96.28</td>
+      <td align="right">48.95</td>
+      <td align="right">15.63</td>
+      <td align="right">2352</td>
+      <td align="right">50</td>
+      <td align="right">1.96</td>
+      <td align="right">68.79</td>
+      <td align="right">40.95</td>
+      <td align="right">3.42</td>
+    </tr>
+    <tr>
+      <td>voter</td>
+      <td align="right">1232</td>
+      <td align="right">20</td>
+      <td align="right">84.82</td>
+      <td align="right">54.29</td>
+      <td align="right">4.63</td>
+      <td align="right">1221</td>
+      <td align="right">15</td>
+      <td align="right">25.00</td>
+      <td align="right">84.43</td>
+      <td align="right">45.76</td>
+      <td align="right">1.38</td>
+    </tr>
+    <tr>
+      <td><strong>Average</strong></td>
+      <td align="center">—</td>
+      <td align="center">—</td>
+      <td align="right"><strong>59.10</strong></td>
+      <td align="right"><strong>33.91</strong></td>
+      <td align="right"><strong>59.76</strong></td>
+      <td align="center">—</td>
+      <td align="center">—</td>
+      <td align="right"><strong>3.38</strong></td>
+      <td align="right"><strong>58.68</strong></td>
+      <td align="right"><strong>34.96</strong></td>
+      <td align="right"><strong>3.80</strong></td>
+    </tr>
+  </tbody>
+</table>
 
-| Benchmark | Ref. LUTs | Ref. Depth | Ref. Dual (%) | Ref. Save (%) | Ref. Time (s) | Current LUTs | Current Depth | $G_D$ (%) | Current Dual (%) | Current Save (%) | Current Time (s) |
-|:----------|----------:|-----------:|--------------:|--------------:|--------------:|-------------:|--------------:|----------:|-----------------:|-----------------:|-----------------:|
-| adder | 183 | 51 | 40.44 | 27.95 | 0.08 | 181 | 51 | 0.00 | 69.06 | 29.57 | 0.04 |
-| arbiter | 2468 | 18 | 10.29 | 9.33 | 2.00 | 2467 | 18 | 0.00 | 10.36 | 9.39 | 0.41 |
-| bar | 448 | 4 | 14.29 | 12.50 | 0.23 | 448 | 4 | 0.00 | 14.29 | 12.50 | 0.09 |
-| cavlc | 108 | 4 | 7.41 | 6.90 | 0.05 | 102 | 4 | 0.00 | 13.73 | 12.07 | 0.03 |
-| ctrl | 18 | 2 | 61.11 | 37.93 | 0.01 | 18 | 2 | 0.00 | 61.11 | 37.93 | 0.01 |
-| dec | 144 | 2 | 99.31 | 49.83 | 0.15 | 150 | 2 | 0.00 | 91.33 | 47.74 | 0.03 |
-| div | 16289 | 943 | 57.97 | 26.34 | 244.69 | 13479 | 864 | 8.38 | 65.84 | 39.44 | 15.37 |
-| hyp | 25007 | 4214 | 79.90 | 43.81 | 753.49 | 33947 | 4194 | 0.47 | 31.46 | 23.70 | 34.32 |
-| i2c | 283 | 5 | 25.09 | 19.83 | 0.11 | 283 | 4 | 20.00 | 22.83 | 18.59 | 0.05 |
-| int2float | 44 | 3 | 15.91 | 13.73 | 0.01 | 42 | 3 | 0.00 | 23.81 | 19.23 | 0.01 |
-| log2 | 6412 | 77 | 29.43 | 20.76 | 32.58 | 6249 | 71 | 7.79 | 28.32 | 21.61 | 4.98 |
-| max | 571 | 45 | 36.60 | 25.75 | 0.39 | 556 | 44 | 2.22 | 38.25 | 27.67 | 0.13 |
-| mem_ctrl | 9773 | 30 | 27.79 | 19.12 | 49.45 | 9326 | 25 | 16.67 | 28.72 | 22.34 | 4.06 |
-| multiplier | 4398 | 56 | 36.02 | 25.80 | 22.85 | 4365 | 53 | 5.36 | 36.99 | 25.50 | 4.22 |
-| priority | 184 | 31 | 15.76 | 12.38 | 0.07 | 182 | 31 | 0.00 | 16.25 | 14.79 | 0.04 |
-| router | 76 | 7 | 17.11 | 14.61 | 0.01 | 81 | 7 | 0.00 | 20.99 | 16.49 | 0.01 |
-| sin | 1198 | 41 | 24.46 | 18.17 | 2.14 | 1149 | 36 | 12.20 | 28.11 | 21.62 | 0.75 |
-| sqrt | 4913 | 1051 | 28.25 | 13.97 | 11.05 | 5201 | 1024 | 2.57 | 38.26 | 18.49 | 2.10 |
-| square | 2717 | 51 | 48.25 | 32.04 | 16.51 | 2719 | 50 | 1.96 | 47.58 | 31.73 | 3.43 |
-| voter | 2228 | 20 | 25.22 | 17.33 | 4.77 | 1860 | 15 | 25.00 | 21.00 | 17.36 | 1.35 |
-| **Average** | — | — | **35.03** | **22.40** | **57.03** | — | — | **5.13** | **35.41** | **23.39** | **3.57** |
+</div>
 
-> **Note:** $G_D$ denotes the depth reduction achieved by the current method
-> relative to the reference method:
->
-> $$
-> G_D =
-> \frac{D_{\mathrm{ref}} - D_{\mathrm{current}}}
-> {D_{\mathrm{ref}}}
-> \times 100\%.
-> $$
->
-> **Save** denotes the reduction in the LUT-area metric relative to the
-> corresponding single-output LUT mapping baseline.
+</details>
 
-The reference results are taken from Lu et al. (2025), denoted as
-`Lu_2025_MOLUT` in the accompanying technical document.
-```
+<br>
+
+<details open>
+<summary><strong>UltraScale+ Architecture Results</strong></summary>
+
+<br>
+
+<div align="center">
+
+<table>
+  <thead>
+    <tr>
+      <th rowspan="2">Benchmark</th>
+      <th colspan="5">Reference Results</th>
+      <th colspan="6">Current Results</th>
+    </tr>
+    <tr>
+      <th>LUTs</th>
+      <th>Depth</th>
+      <th>Dual<br>(%)</th>
+      <th>Save<br>(%)</th>
+      <th>Time<br>(s)</th>
+      <th>LUTs</th>
+      <th>Depth</th>
+      <th>G<sub>D</sub><br>(%)</th>
+      <th>Dual<br>(%)</th>
+      <th>Save<br>(%)</th>
+      <th>Time<br>(s)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>adder</td>
+      <td align="right">183</td>
+      <td align="right">51</td>
+      <td align="right">40.44</td>
+      <td align="right">27.95</td>
+      <td align="right">0.08</td>
+      <td align="right">181</td>
+      <td align="right">51</td>
+      <td align="right">0.00</td>
+      <td align="right">69.06</td>
+      <td align="right">29.57</td>
+      <td align="right">0.04</td>
+    </tr>
+    <tr>
+      <td>arbiter</td>
+      <td align="right">2468</td>
+      <td align="right">18</td>
+      <td align="right">10.29</td>
+      <td align="right">9.33</td>
+      <td align="right">2.00</td>
+      <td align="right">2467</td>
+      <td align="right">18</td>
+      <td align="right">0.00</td>
+      <td align="right">10.36</td>
+      <td align="right">9.39</td>
+      <td align="right">0.41</td>
+    </tr>
+    <tr>
+      <td>bar</td>
+      <td align="right">448</td>
+      <td align="right">4</td>
+      <td align="right">14.29</td>
+      <td align="right">12.50</td>
+      <td align="right">0.23</td>
+      <td align="right">448</td>
+      <td align="right">4</td>
+      <td align="right">0.00</td>
+      <td align="right">14.29</td>
+      <td align="right">12.50</td>
+      <td align="right">0.09</td>
+    </tr>
+    <tr>
+      <td>cavlc</td>
+      <td align="right">108</td>
+      <td align="right">4</td>
+      <td align="right">7.41</td>
+      <td align="right">6.90</td>
+      <td align="right">0.05</td>
+      <td align="right">102</td>
+      <td align="right">4</td>
+      <td align="right">0.00</td>
+      <td align="right">13.73</td>
+      <td align="right">12.07</td>
+      <td align="right">0.03</td>
+    </tr>
+    <tr>
+      <td>ctrl</td>
+      <td align="right">18</td>
+      <td align="right">2</td>
+      <td align="right">61.11</td>
+      <td align="right">37.93</td>
+      <td align="right">0.01</td>
+      <td align="right">18</td>
+      <td align="right">2</td>
+      <td align="right">0.00</td>
+      <td align="right">61.11</td>
+      <td align="right">37.93</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>dec</td>
+      <td align="right">144</td>
+      <td align="right">2</td>
+      <td align="right">99.31</td>
+      <td align="right">49.83</td>
+      <td align="right">0.15</td>
+      <td align="right">150</td>
+      <td align="right">2</td>
+      <td align="right">0.00</td>
+      <td align="right">91.33</td>
+      <td align="right">47.74</td>
+      <td align="right">0.03</td>
+    </tr>
+    <tr>
+      <td>div</td>
+      <td align="right">16289</td>
+      <td align="right">943</td>
+      <td align="right">57.97</td>
+      <td align="right">26.34</td>
+      <td align="right">244.69</td>
+      <td align="right">13479</td>
+      <td align="right">864</td>
+      <td align="right">8.38</td>
+      <td align="right">65.84</td>
+      <td align="right">39.44</td>
+      <td align="right">15.37</td>
+    </tr>
+    <tr>
+      <td>hyp</td>
+      <td align="right">25007</td>
+      <td align="right">4214</td>
+      <td align="right">79.90</td>
+      <td align="right">43.81</td>
+      <td align="right">753.49</td>
+      <td align="right">33947</td>
+      <td align="right">4194</td>
+      <td align="right">0.47</td>
+      <td align="right">31.46</td>
+      <td align="right">23.70</td>
+      <td align="right">34.32</td>
+    </tr>
+    <tr>
+      <td>i2c</td>
+      <td align="right">283</td>
+      <td align="right">5</td>
+      <td align="right">25.09</td>
+      <td align="right">19.83</td>
+      <td align="right">0.11</td>
+      <td align="right">283</td>
+      <td align="right">4</td>
+      <td align="right">20.00</td>
+      <td align="right">22.83</td>
+      <td align="right">18.59</td>
+      <td align="right">0.05</td>
+    </tr>
+    <tr>
+      <td>int2float</td>
+      <td align="right">44</td>
+      <td align="right">3</td>
+      <td align="right">15.91</td>
+      <td align="right">13.73</td>
+      <td align="right">0.01</td>
+      <td align="right">42</td>
+      <td align="right">3</td>
+      <td align="right">0.00</td>
+      <td align="right">23.81</td>
+      <td align="right">19.23</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>log2</td>
+      <td align="right">6412</td>
+      <td align="right">77</td>
+      <td align="right">29.43</td>
+      <td align="right">20.76</td>
+      <td align="right">32.58</td>
+      <td align="right">6249</td>
+      <td align="right">71</td>
+      <td align="right">7.79</td>
+      <td align="right">28.32</td>
+      <td align="right">21.61</td>
+      <td align="right">4.98</td>
+    </tr>
+    <tr>
+      <td>max</td>
+      <td align="right">571</td>
+      <td align="right">45</td>
+      <td align="right">36.60</td>
+      <td align="right">25.75</td>
+      <td align="right">0.39</td>
+      <td align="right">556</td>
+      <td align="right">44</td>
+      <td align="right">2.22</td>
+      <td align="right">38.25</td>
+      <td align="right">27.67</td>
+      <td align="right">0.13</td>
+    </tr>
+    <tr>
+      <td>mem_ctrl</td>
+      <td align="right">9773</td>
+      <td align="right">30</td>
+      <td align="right">27.79</td>
+      <td align="right">19.12</td>
+      <td align="right">49.45</td>
+      <td align="right">9326</td>
+      <td align="right">25</td>
+      <td align="right">16.67</td>
+      <td align="right">28.72</td>
+      <td align="right">22.34</td>
+      <td align="right">4.06</td>
+    </tr>
+    <tr>
+      <td>multiplier</td>
+      <td align="right">4398</td>
+      <td align="right">56</td>
+      <td align="right">36.02</td>
+      <td align="right">25.80</td>
+      <td align="right">22.85</td>
+      <td align="right">4365</td>
+      <td align="right">53</td>
+      <td align="right">5.36</td>
+      <td align="right">36.99</td>
+      <td align="right">25.50</td>
+      <td align="right">4.22</td>
+    </tr>
+    <tr>
+      <td>priority</td>
+      <td align="right">184</td>
+      <td align="right">31</td>
+      <td align="right">15.76</td>
+      <td align="right">12.38</td>
+      <td align="right">0.07</td>
+      <td align="right">182</td>
+      <td align="right">31</td>
+      <td align="right">0.00</td>
+      <td align="right">16.25</td>
+      <td align="right">14.79</td>
+      <td align="right">0.04</td>
+    </tr>
+    <tr>
+      <td>router</td>
+      <td align="right">76</td>
+      <td align="right">7</td>
+      <td align="right">17.11</td>
+      <td align="right">14.61</td>
+      <td align="right">0.01</td>
+      <td align="right">81</td>
+      <td align="right">7</td>
+      <td align="right">0.00</td>
+      <td align="right">20.99</td>
+      <td align="right">16.49</td>
+      <td align="right">0.01</td>
+    </tr>
+    <tr>
+      <td>sin</td>
+      <td align="right">1198</td>
+      <td align="right">41</td>
+      <td align="right">24.46</td>
+      <td align="right">18.17</td>
+      <td align="right">2.14</td>
+      <td align="right">1149</td>
+      <td align="right">36</td>
+      <td align="right">12.20</td>
+      <td align="right">28.11</td>
+      <td align="right">21.62</td>
+      <td align="right">0.75</td>
+    </tr>
+    <tr>
+      <td>sqrt</td>
+      <td align="right">4913</td>
+      <td align="right">1051</td>
+      <td align="right">28.25</td>
+      <td align="right">13.97</td>
+      <td align="right">11.05</td>
+      <td align="right">5201</td>
+      <td align="right">1024</td>
+      <td align="right">2.57</td>
+      <td align="right">38.26</td>
+      <td align="right">18.49</td>
+      <td align="right">2.10</td>
+    </tr>
+    <tr>
+      <td>square</td>
+      <td align="right">2717</td>
+      <td align="right">51</td>
+      <td align="right">48.25</td>
+      <td align="right">32.04</td>
+      <td align="right">16.51</td>
+      <td align="right">2719</td>
+      <td align="right">50</td>
+      <td align="right">1.96</td>
+      <td align="right">47.58</td>
+      <td align="right">31.73</td>
+      <td align="right">3.43</td>
+    </tr>
+    <tr>
+      <td>voter</td>
+      <td align="right">2228</td>
+      <td align="right">20</td>
+      <td align="right">25.22</td>
+      <td align="right">17.33</td>
+      <td align="right">4.77</td>
+      <td align="right">1860</td>
+      <td align="right">15</td>
+      <td align="right">25.00</td>
+      <td align="right">21.00</td>
+      <td align="right">17.36</td>
+      <td align="right">1.35</td>
+    </tr>
+    <tr>
+      <td><strong>Average</strong></td>
+      <td align="center">—</td>
+      <td align="center">—</td>
+      <td align="right"><strong>35.03</strong></td>
+      <td align="right"><strong>22.40</strong></td>
+      <td align="right"><strong>57.03</strong></td>
+      <td align="center">—</td>
+      <td align="center">—</td>
+      <td align="right"><strong>5.13</strong></td>
+      <td align="right"><strong>35.41</strong></td>
+      <td align="right"><strong>23.39</strong></td>
+      <td align="right"><strong>3.57</strong></td>
+    </tr>
+  </tbody>
+</table>
+
+</div>
+
+</details>
+
+### Metric Definitions
+
+- **LUTs**: Number of LUT nodes produced by technology mapping.
+- **Depth**: Mapping depth of the resulting LUT network.
+- **Dual**: Percentage of LUT roots packed into dual-output physical LUTs.
+- **Save**: Reduction in the LUT-area metric relative to the corresponding
+  single-output LUT mapping baseline.
+- **Time**: Mapping runtime in seconds.
+- **G<sub>D</sub>**: Depth reduction achieved by the current method relative to
+  the reference method:
+
+<div align="center">
+
+G<sub>D</sub> =
+(D<sub>ref</sub> − D<sub>current</sub>) /
+D<sub>ref</sub> × 100%
+
+</div>
+
+The reference results correspond to the method reported by Lu et al. (2025).
 
 ## Motivation
 
