@@ -1,4 +1,3 @@
-````markdown
 # Pair-Elimination-Based Dual-Output LUT Mapping for Fracturable FPGAs
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -39,17 +38,15 @@ depth and timing quality.
 
 ---
 
-## Documentation
+## Project Documentation
 
-A detailed introduction to this work, including the proposed mapping method,
-implementation details, and experimental evaluation, is available in the
-following PDF document:
+A detailed technical description of the project is available in
+[`FPGAMAPPER.pdf`](./FPGAMAPPER.pdf), located in the repository root directory.
 
-- [FPGAMAPPER.pdf](./FPGAMAPPER.pdf)
-
-The PDF file is located in the root directory of this repository.
-
----
+The document provides an introduction to the pair-elimination-based
+dual-output LUT mapping framework, including its motivation, architecture
+model, candidate-generation strategy, legality and timing analysis,
+pair-selection method, ABC integration, and experimental evaluation.
 
 ## Motivation
 
@@ -74,7 +71,7 @@ useful dual-output structures remain available in the final mapped network.
 
 ### Iterative dual-output-aware mapping
 
-Dual-output matching is performed during ABC's mapping flow rather than only as
+Dual-output matching is performed during ABC’s mapping flow rather than only as
 a final packing step.
 
 The implementation works with the following mapping stages:
@@ -116,7 +113,7 @@ The mapper checks that:
 
 - Each output cut fits the dual-output LUT mode
 - The union of both input-support sets fits the physical LUT
-- Neither LUT root appears in the other LUT's cut
+- Neither LUT root appears in the other LUT’s cut
 - Both outputs satisfy their timing requirements
 - The pair provides a positive estimated area benefit
 
@@ -163,11 +160,3 @@ Modified ABC source files are located under:
 
 ```text
 zinterface/abcorig/src
-```
-
-The introductory PDF document is located in the repository root:
-
-```text
-FPGAMAPPER.pdf
-```
-````
